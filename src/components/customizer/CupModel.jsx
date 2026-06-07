@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { Bounds, Center, Decal, OrbitControls, useGLTF, useTexture } from '@react-three/drei'
-import { useSnapshot } from 'valtio'
-import { customizerState } from '../store/customizerState'
+import { useCustomizerStore } from '../../store/customizer.store'
 import CoffeeMug from './models/CoffeeMug'
 import BasicCoffeeMug from './models/BasicCoffeeMug'
 
@@ -43,7 +42,7 @@ function ArtworkPlane({ image }) {
 }
 
 function UploadedCup({ modelUrl }) {
-  const snap = useSnapshot(customizerState)
+  const snap = useCustomizerStore()
   const { scene } = useGLTF(modelUrl)
   const clonedScene = useMemo(() => {
     const clone = scene.clone(true)
@@ -93,7 +92,7 @@ function UploadedCup({ modelUrl }) {
 }
 
 function FallbackCup() {
-  const snap = useSnapshot(customizerState)
+  const snap = useCustomizerStore()
 
   return (
     <group>

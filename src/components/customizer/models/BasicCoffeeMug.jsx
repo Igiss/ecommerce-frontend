@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { useGLTF } from '@react-three/drei'
-import { useSnapshot } from 'valtio'
-import { customizerState } from '../../store/customizerState'
+import { useCustomizerStore } from '../../../store/customizer.store'
 
 function useCupTexture(baseColor, designImage, printX, printY, printSize) {
   const [texture, setTexture] = useState(null)
@@ -68,7 +67,7 @@ function useCupTexture(baseColor, designImage, printX, printY, printSize) {
 }
 
 export default function BasicCoffeeMug(props) {
-  const snap = useSnapshot(customizerState)
+  const snap = useCustomizerStore()
   const { nodes, materials } = useGLTF('/models/basic_coffee_mug.glb')
   const cupTexture = useCupTexture(
     snap.baseColor,

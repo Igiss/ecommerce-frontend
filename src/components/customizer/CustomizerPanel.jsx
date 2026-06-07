@@ -1,11 +1,10 @@
 import React, { useState } from 'react'
-import { useSnapshot } from 'valtio'
-import { customizerState } from '../store/customizerState'
+import { useCustomizerStore } from '../../store/customizer.store'
 
 const swatches = ['#f7f1e8', '#ffffff', '#b9d8c2', '#f4b860', '#e56b6f', '#30343f']
 
 export default function CustomizerPanel({ product }) {
-  const snap = useSnapshot(customizerState)
+  const snap = useCustomizerStore()
   const [status, setStatus] = useState('')
 
   const handleFile = (event) => {
@@ -14,11 +13,13 @@ export default function CustomizerPanel({ product }) {
 
     const reader = new FileReader()
     reader.onload = () => {
-      customizerState.designImage = reader.result
-      customizerState.designName = file.name.replace(/\.[^.]+$/, '') || 'My cup design'
-      customizerState.printX = 512
-      customizerState.printY = 610
-      customizerState.printSize = 520
+      useCustomizerStore.setState({
+        designImage: reader.result,
+        designName: file.name.replace(/\.[^.]+$/, '') || 'My cup design',
+        printX: 512,
+        printY: 610,
+        printSize: 520
+      })
     }
     reader.readAsDataURL(file)
   }
@@ -61,7 +62,7 @@ export default function CustomizerPanel({ product }) {
         <input
           value={snap.designName}
           onChange={(event) => {
-            customizerState.designName = event.target.value
+            useCustomizerStore.setState({ designName: event.target.value })
           }}
         />
       </label>
@@ -75,7 +76,7 @@ export default function CustomizerPanel({ product }) {
               className={snap.baseColor === color ? 'swatch active' : 'swatch'}
               style={{ backgroundColor: color }}
               onClick={() => {
-                customizerState.baseColor = color
+                useCustomizerStore.setState({ baseColor: color })
               }}
               aria-label={`Use color ${color}`}
             />
@@ -88,7 +89,10 @@ export default function CustomizerPanel({ product }) {
         <input type="file" accept="image/*" onChange={handleFile} />
       </label>
 
-      <button className="secondary-btn" onClick={() => { customizerState.designImage = '' }}>
+      <button
+        className="secondary-btn"
+        onClick={() => useCustomizerStore.setState({ designImage: '' })}
+      >
         Clear artwork
       </button>
 
@@ -103,7 +107,7 @@ export default function CustomizerPanel({ product }) {
               max="900"
               value={snap.printX}
               onChange={(event) => {
-                customizerState.printX = Number(event.target.value)
+                useCustomizerStore.setState({ printX: Number(event.target.value) })
               }}
             />
           </label>
@@ -115,7 +119,7 @@ export default function CustomizerPanel({ product }) {
               max="900"
               value={snap.printY}
               onChange={(event) => {
-                customizerState.printY = Number(event.target.value)
+                useCustomizerStore.setState({ printY: Number(event.target.value) })
               }}
             />
           </label>
@@ -127,7 +131,7 @@ export default function CustomizerPanel({ product }) {
               max="1024"
               value={snap.printSize}
               onChange={(event) => {
-                customizerState.printSize = Number(event.target.value)
+                useCustomizerStore.setState({ printSize: Number(event.target.value) })
               }}
             />
           </label>

@@ -1,15 +1,26 @@
-import React, { Suspense } from 'react'
+import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import CupModel from '../components/CupModel'
-import CustomizerPanel from '../components/CustomizerPanel'
+import type { Product } from '@/types/product'
+import CupModel from './CupModel'
+import CustomizerPanel from './CustomizerPanel'
 
 const modelAliases = {
   '/models/classic-cup.glb': '/models/simple_mug.glb',
   '/models/thermo-cup.glb': '/models/coffee-mug.glb'
 }
 
-export default function ProductCustomizer({ product, onBack }) {
-  const modelUrl = modelAliases[product.modelUrl] || product.modelUrl
+interface ProductCustomizerProps {
+  product: Product
+  onBack: () => void
+}
+
+export default function ProductCustomizer({
+  product,
+  onBack
+}: ProductCustomizerProps) {
+  const modelUrl = product.modelUrl
+    ? modelAliases[product.modelUrl as keyof typeof modelAliases] || product.modelUrl
+    : undefined
 
   return (
     <main className="customizer-shell">

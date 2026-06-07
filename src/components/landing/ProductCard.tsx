@@ -1,6 +1,11 @@
-import React from 'react'
+import type { Product } from '@/types/product'
 
-export default function ProductCard({ product, onCustomize }) {
+interface ProductCardProps {
+  product: Product
+  onCustomize: (product: Product) => void
+}
+
+export function ProductCard({ product, onCustomize }: ProductCardProps) {
   return (
     <div className="card">
       <h3>{product.name}</h3>
