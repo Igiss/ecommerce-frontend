@@ -6,6 +6,10 @@ interface User {
   email: string
   avatar?: string
   isAdmin: boolean
+  fullName?: string
+  role?: string
+  phone?: string
+  address?: string
 }
 
 interface AuthState {
@@ -23,7 +27,14 @@ export const useAuthStore = create<AuthState>((set) => {
     try {
       const storedUser = localStorage.getItem('cupshop_user')
       const storedToken = localStorage.getItem('cupshop_token')
-      if (storedUser) initialUser = JSON.parse(storedUser)
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser)
+        if (parsed) {
+          parsed.name = parsed.fullName || parsed.name || ''
+          parsed.isAdmin = parsed.role === 'admin'
+          initialUser = parsed
+        }
+      }
       if (storedToken) initialToken = storedToken
     } catch {
       // Ignore parse errors
@@ -34,14 +45,23 @@ export const useAuthStore = create<AuthState>((set) => {
     user: initialUser,
     token: initialToken,
     setAuth: (user, token) => {
+      let normalizedUser = null
+      if (user) {
+        normalizedUser = {
+          ...user,
+          name: user.fullName || user.name || '',
+          isAdmin: user.role === 'admin'
+        }
+      }
+
       if (typeof window !== 'undefined') {
-        if (user) localStorage.setItem('cupshop_user', JSON.stringify(user))
+        if (normalizedUser) localStorage.setItem('cupshop_user', JSON.stringify(normalizedUser))
         else localStorage.removeItem('cupshop_user')
 
         if (token) localStorage.setItem('cupshop_token', token)
         else localStorage.removeItem('cupshop_token')
       }
-      set({ user, token })
+      set({ user: normalizedUser, token })
     },
     logout: () => {
       if (typeof window !== 'undefined') {

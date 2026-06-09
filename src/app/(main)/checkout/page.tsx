@@ -24,6 +24,8 @@ export default function CheckoutPage() {
   const [city, setCity] = useState('')
   const [postalCode, setPostalCode] = useState('70000')
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'VNPay'>('COD')
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [newOrderId, setNewOrderId] = useState('')
 
   // Coupon State
   const [couponCode, setCouponCode] = useState('')
@@ -46,6 +48,39 @@ export default function CheckoutPage() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-800 border-t-transparent"></div>
+      </div>
+    )
+  }
+
+  if (isSuccess) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 text-green-600 border border-green-200">
+          <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-black text-stone-900 tracking-tight">Đặt hàng thành công!</h2>
+        <p className="text-sm text-stone-500 mt-2">Cảm ơn bạn đã mua sắm tại CupShop. Đơn hàng của bạn đã được tiếp nhận và đang được xử lý.</p>
+        {newOrderId && (
+          <div className="mt-4 rounded-xl bg-stone-50 border border-stone-150 p-3.5 text-xs text-stone-600">
+            Mã đơn hàng: <strong className="text-stone-900 select-all">{newOrderId}</strong>
+          </div>
+        )}
+        <div className="mt-8 flex flex-col gap-3">
+          <button
+            onClick={() => router.push('/')}
+            className="w-full rounded-xl bg-amber-800 hover:bg-amber-900 text-white px-6 py-2.5 text-sm font-bold shadow-md transition-colors"
+          >
+            Quay lại Trang chủ
+          </button>
+          <button
+            onClick={() => router.push('/profile')}
+            className="w-full rounded-xl border border-stone-300 hover:bg-stone-50 text-stone-700 px-6 py-2.5 text-sm font-bold transition-colors"
+          >
+            Xem lịch sử mua hàng
+          </button>
+        </div>
       </div>
     )
   }
@@ -104,26 +139,12 @@ export default function CheckoutPage() {
 
     try {
       const orderData = {
-        orderItems: items.map((item) => ({
-          name: item.product.name,
-          qty: item.qty,
-          image: (item.product as any).images?.[0] || '',
-          price: item.product.price,
-          product: item.product.id,
-          // If customizer customization properties exist
-          customization: item.customization ? {
-            baseColor: item.customization.baseColor,
-            accentColor: item.customization.accentColor,
-            designImage: item.customization.designImage,
-            designName: item.customization.designName,
-            printX: item.customization.printX,
-            printY: item.customization.printY,
-            printSize: item.customization.printSize
-          } : undefined
+        items: items.map((item) => ({
+          productId: Number(item.product.id),
+          quantity: item.qty
         })),
-        shippingAddress: { fullName, phone, address, city, postalCode },
-        paymentMethod,
-        couponCode: appliedCoupon ? appliedCoupon.code : undefined
+        shippingAddress: { fullName, phone, address, city },
+        paymentMethod: paymentMethod === 'VNPay' ? 'VNPAY' : 'COD'
       }
 
       const createdOrder = await createOrder(orderData)
@@ -142,7 +163,8 @@ export default function CheckoutPage() {
         }
       } else {
         // Cash on delivery
-        router.push(`/profile`) // Redirect to personal orders list
+        setNewOrderId(orderId)
+        setIsSuccess(true)
       }
     } catch (err: any) {
       setError(err.message || 'Có lỗi xảy ra trong quá trình đặt hàng.')

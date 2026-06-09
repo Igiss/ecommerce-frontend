@@ -47,8 +47,8 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const data = await registerUser({ name, email, password })
-      setAuth(data.user || data, data.token)
+      const data = await registerUser({ fullName: name, email, password })
+      setAuth(data.user || data, data.accessToken || data.token)
       router.push('/')
     } catch (err: any) {
       setError(err.message || 'Có lỗi xảy ra trong quá trình đăng ký')

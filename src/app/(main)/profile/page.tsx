@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
-import { updateUserProfile } from '@/lib/api/auth.service'
+import { updateUserProfile, changePassword } from '@/lib/api/auth.service'
 import { getMyOrders } from '@/lib/api/orders.service'
+import { apiClient } from '@/lib/api/client'
 import { User, ShoppingBag, Eye, Lock, Mail, AlertCircle, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 
@@ -19,6 +20,10 @@ export default function ProfilePage() {
 
   // Profile Edit fields
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [oldPassword, setOldPassword] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   
@@ -32,16 +37,37 @@ export default function ProfilePage() {
       return
     }
 
-    setName(user.name)
+    setName(user.fullName || user.name || '')
+    setPhone(user.phone || '')
+    setAvatarUrl(user.avatar || '')
+
+    const mapBackendStatusToFrontend = (status: string): string => {
+      switch (status) {
+        case 'confirmed': return 'processing'
+        case 'shipping': return 'shipped'
+        case 'completed': return 'delivered'
+        default: return status
+      }
+    }
 
     // Fetch order history
     getMyOrders()
       .then((data: any) => {
+        let list: any[] = []
         if (Array.isArray(data)) {
-          setOrders(data)
+          list = data
         } else if (data && typeof data === 'object' && 'orders' in data && Array.isArray(data.orders)) {
-          setOrders(data.orders)
+          list = data.orders
         }
+
+        const normalized = list.map((order: any) => ({
+          ...order,
+          status: mapBackendStatusToFrontend(order.orderStatus || order.status),
+          totalPrice: order.totalAmount || order.totalPrice || 0,
+          orderItems: order.items || order.orderItems || [],
+          isPaid: order.paymentStatus === 'paid' || order.isPaid || false
+        }))
+        setOrders(normalized)
       })
       .catch(() => {})
       .finally(() => setOrdersLoading(false))
@@ -55,23 +81,71 @@ export default function ProfilePage() {
     )
   }
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingAvatar(true)
+    setProfileError('')
+    setProfileSuccess('')
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const res = await apiClient<any>('/upload/avatar', {
+        method: 'POST',
+        body: formData
+      })
+      if (res && res.url) {
+        setAvatarUrl(res.url)
+        setProfileSuccess('Tải ảnh đại diện lên thành công! Nhấn "Lưu thay đổi" để cập nhật.')
+      }
+    } catch (err: any) {
+      setProfileError(err.message || 'Lỗi tải ảnh đại diện lên.')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
   // Handle profile form submit
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     setProfileError('')
     setProfileSuccess('')
 
-    if (password && password !== confirmPassword) {
-      setProfileError('Mật khẩu mới nhập lại không khớp.')
-      return
+    if (password) {
+      if (!oldPassword) {
+        setProfileError('Vui lòng nhập mật khẩu cũ để đổi mật khẩu.')
+        return
+      }
+      if (password !== confirmPassword) {
+        setProfileError('Mật khẩu mới nhập lại không khớp.')
+        return
+      }
     }
 
     setLoading(true)
     try {
-      const updatedUser = await updateUserProfile({ name, password: password || undefined })
+      // 1. Update profile info
+      const updatedUser = await updateUserProfile({
+        fullName: name,
+        phone: phone || undefined,
+        avatar: avatarUrl || undefined
+      })
+
+      // 2. If changing password
+      if (password) {
+        await changePassword({
+          oldPassword,
+          newPassword: password
+        })
+      }
+
       // Update store user state
       setAuth(updatedUser, useAuthStore.getState().token)
       setProfileSuccess('Cập nhật thông tin cá nhân thành công!')
+      setOldPassword('')
       setPassword('')
       setConfirmPassword('')
     } catch (err: any) {
@@ -132,15 +206,39 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
+          {/* Avatar Upload */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="group relative h-20 w-20 overflow-hidden rounded-full border-2 border-amber-600/30 bg-stone-55 flex items-center justify-center cursor-pointer shadow-inner">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-2xl font-black text-amber-800">
+                  {name ? name.charAt(0).toUpperCase() : 'U'}
+                </span>
+              )}
+              {/* Overlay edit banner */}
+              <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <span className="text-[10px] font-bold text-white uppercase tracking-wider">Đổi ảnh</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+              </label>
+            </div>
+            {uploadingAvatar && (
+              <span className="text-[10px] text-amber-850 mt-1.5 animate-pulse font-medium">Đang tải ảnh...</span>
+            )}
+          </div>
+
+          <form onSubmit={handleUpdateProfile} className="space-y-4" autoComplete="off">
             <div>
-              <label className="block text-xs font-semibold text-stone-600 uppercase">Địa chỉ Email</label>
+              <label htmlFor="email" className="block text-xs font-semibold text-stone-600 uppercase">Địa chỉ Email</label>
               <div className="mt-1 relative rounded-lg shadow-xs">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
                   <Mail className="h-4 w-4" />
                 </div>
                 <input
                   type="email"
+                  name="email"
+                  id="email"
+                  autoComplete="username"
                   disabled
                   value={user.email}
                   className="block w-full rounded-lg border border-stone-200 bg-stone-100/50 pl-10 pr-3 py-2 text-sm text-stone-500 focus:outline-none"
@@ -149,9 +247,12 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-600 uppercase">Họ và tên</label>
+              <label htmlFor="fullName" className="block text-xs font-semibold text-stone-600 uppercase">Họ và tên</label>
               <input
                 type="text"
+                name="fullName"
+                id="fullName"
+                autoComplete="name"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -160,13 +261,49 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-600 uppercase">Mật khẩu mới (Bỏ trống nếu giữ nguyên)</label>
+              <label htmlFor="phone" className="block text-xs font-semibold text-stone-600 uppercase">Số điện thoại</label>
+              <input
+                type="text"
+                name="phone"
+                id="phone"
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Nhập số điện thoại"
+                className="mt-1 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="oldPassword" className="block text-xs font-semibold text-stone-600 uppercase">Mật khẩu cũ (Để đổi mật khẩu)</label>
               <div className="mt-1 relative rounded-lg shadow-xs">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
                   <Lock className="h-4 w-4" />
                 </div>
                 <input
                   type="password"
+                  name="oldPassword"
+                  id="oldPassword"
+                  autoComplete="current-password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="Nhập mật khẩu hiện tại"
+                  className="block w-full rounded-lg border border-stone-300 bg-stone-50/50 pl-10 pr-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-xs font-semibold text-stone-600 uppercase">Mật khẩu mới</label>
+              <div className="mt-1 relative rounded-lg shadow-xs">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
+                  <Lock className="h-4 w-4" />
+                </div>
+                <input
+                  type="password"
+                  name="password"
+                  id="password"
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Tối thiểu 6 ký tự"
@@ -177,13 +314,16 @@ export default function ProfilePage() {
 
             {password && (
               <div>
-                <label className="block text-xs font-semibold text-stone-600 uppercase">Xác nhận mật khẩu mới</label>
+                <label htmlFor="confirmPassword" className="block text-xs font-semibold text-stone-600 uppercase">Xác nhận mật khẩu mới</label>
                 <div className="mt-1 relative rounded-lg shadow-xs">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
                     <Lock className="h-4 w-4" />
                   </div>
                   <input
                     type="password"
+                    name="confirmPassword"
+                    id="confirmPassword"
+                    autoComplete="new-password"
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}

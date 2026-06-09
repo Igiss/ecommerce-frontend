@@ -30,8 +30,35 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
     }
 
     getOrderById(id)
-      .then((data) => {
-        setOrder(data)
+      .then((data: any) => {
+        const mapBackendStatusToFrontend = (status: string): string => {
+          switch (status) {
+            case 'confirmed': return 'processing'
+            case 'shipping': return 'shipped'
+            case 'completed': return 'delivered'
+            default: return status
+          }
+        }
+
+        const itemsPrice = (data.items || data.orderItems || []).reduce((sum: number, item: any) => sum + (item.price * (item.quantity || item.qty || 0)), 0)
+        const totalPrice = data.totalAmount || data.totalPrice || 0
+        const shippingPrice = totalPrice > 500000 ? 0 : 30000
+        const discountAmount = Math.max(itemsPrice + shippingPrice - totalPrice, 0)
+
+        const normalized = {
+          ...data,
+          status: mapBackendStatusToFrontend(data.orderStatus || data.status),
+          isPaid: data.paymentStatus === 'paid' || data.isPaid || false,
+          orderItems: (data.items || data.orderItems || []).map((item: any) => ({
+            ...item,
+            qty: item.quantity || item.qty || 1
+          })),
+          totalPrice,
+          itemsPrice,
+          shippingPrice,
+          discountAmount
+        }
+        setOrder(normalized)
       })
       .catch((err: any) => {
         setError(err.message || 'Không thể lấy thông tin chi tiết đơn hàng.')

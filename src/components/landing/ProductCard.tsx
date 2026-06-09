@@ -20,7 +20,10 @@ export function ProductCard({ product, onCustomize }: ProductCardProps) {
   }
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-stone-200/60 bg-white/60 p-3 shadow-md backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-amber-600/30 hover:shadow-xl">
+    <div
+      onClick={() => onCustomize(product)}
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-stone-200/60 bg-white/60 p-3 shadow-md backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-amber-600/30 hover:shadow-xl cursor-pointer"
+    >
       {/* Product Image Container */}
       <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-stone-100">
         <img

@@ -1,5 +1,15 @@
 import { useAuthStore } from '@/store/auth.store'
 
+export class ApiError extends Error {
+  status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
 export async function apiClient<T>(
   path: string,
   init?: RequestInit
@@ -30,8 +40,18 @@ export async function apiClient<T>(
     } catch {
       // Ignore
     }
-    throw new Error(errMsg)
+    throw new ApiError(errMsg, response.status)
   }
 
-  return response.json() as Promise<T>
+  const contentType = response.headers.get('content-type') || ''
+  if (response.status === 204 || response.headers.get('content-length') === '0') {
+    return undefined as T
+  }
+
+  if (contentType.includes('application/json')) {
+    return response.json() as Promise<T>
+  }
+
+  const text = await response.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }

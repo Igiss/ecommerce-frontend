@@ -31,7 +31,7 @@ export default function LoginPage() {
 
     try {
       const data = await loginUser({ email, password })
-      setAuth(data.user || data, data.token)
+      setAuth(data.user || data, data.accessToken || data.token)
       router.push('/')
     } catch (err: any) {
       setError(err.message || 'Email hoặc mật khẩu không đúng')

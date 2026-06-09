@@ -5,13 +5,16 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { useCartStore } from '@/store/cart.store'
-import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, X, Search } from 'lucide-react'
+import { useWishlistStore } from '@/store/wishlist.store'
+import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, X, Search, Heart } from 'lucide-react'
 
 export function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
   const { user, logout } = useAuthStore()
   const items = useCartStore((state) => state.items)
+  const wishlistItems = useWishlistStore((state) => state.items)
+  const wishlistCount = wishlistItems.length
   
   const [mounted, setMounted] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -114,16 +117,16 @@ export function Navbar() {
                   className="flex items-center gap-1.5 rounded-full border border-stone-200 p-1 pr-3 bg-white/50 hover:bg-white transition-all focus:outline-none"
                 >
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 font-bold text-amber-800 text-sm">
-                    {user.name.charAt(0).toUpperCase()}
+                    {(user.name || user.email || 'User').charAt(0).toUpperCase()}
                   </div>
                   <span className="hidden sm:inline text-xs font-medium text-stone-700">
-                    {user.name}
+                    {user.name || user.email || 'User'}
                   </span>
                 </button>
 
                 {/* Dropdown Menu */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-xl border border-stone-200 bg-white p-1 shadow-lg ring-1 ring-black/5 focus:outline-none">
+                  <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-xl border border-stone-200 bg-white p-1 shadow-lg ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-1 duration-100">
                     {user.isAdmin && (
                       <Link
                         href="/admin/dashboard"
@@ -142,6 +145,21 @@ export function Navbar() {
                       <User className="h-4 w-4 text-stone-400" />
                       Hồ sơ cá nhân
                     </Link>
+                    <Link
+                      href="/wishlist"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-50 hover:text-amber-800 transition-colors"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Heart className="h-4 w-4 text-stone-400" />
+                        Danh sách yêu thích
+                      </span>
+                      {wishlistCount > 0 && (
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                          {wishlistCount}
+                        </span>
+                      )}
+                    </Link>
                     <hr className="my-1 border-stone-100" />
                     <button
                       onClick={handleLogout}
@@ -155,6 +173,18 @@ export function Navbar() {
               </>
             ) : (
               <div className="hidden md:flex items-center gap-2">
+                <Link
+                  href="/wishlist"
+                  className="relative p-2 text-stone-600 hover:text-amber-800 transition-colors mr-1"
+                  title="Danh sách yêu thích"
+                >
+                  <Heart className="h-5.5 w-5.5" />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </Link>
                 <Link
                   href="/login"
                   className="rounded-full px-4 py-1.5 text-xs font-semibold text-stone-700 hover:text-amber-800 transition-colors"
@@ -215,6 +245,15 @@ export function Navbar() {
               }`}
             >
               Sản phẩm
+            </Link>
+            <Link
+              href="/wishlist"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-stone-100 ${
+                pathname === '/wishlist' ? 'bg-amber-50 text-amber-800' : 'text-stone-700'
+              }`}
+            >
+              Yêu thích {wishlistCount > 0 && `(${wishlistCount})`}
             </Link>
             <Link
               href="/about"

@@ -21,8 +21,15 @@ export function getUserProfile() {
 }
 
 export function updateUserProfile(body: any) {
-  return apiClient<any>('/auth/profile', {
-    method: 'PUT',
+  return apiClient<any>('/users/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(body)
+  })
+}
+
+export function changePassword(body: any) {
+  return apiClient<any>('/auth/change-password', {
+    method: 'PATCH',
     body: JSON.stringify(body)
   })
 }

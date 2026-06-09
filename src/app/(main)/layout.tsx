@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navbar } from '@/components/landing/Navbar'
 import { Footer } from '@/components/landing/Footer'
+import { Chatbox } from '@/components/landing/Chatbox'
 
 interface MainLayoutProps {
   children: ReactNode
@@ -14,6 +15,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {children}
       </main>
       <Footer />
+      <Chatbox />
     </div>
   )
 }

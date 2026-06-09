@@ -12,14 +12,13 @@ function VNPayReturnContent() {
   const [responseMsg, setResponseMsg] = useState('')
 
   useEffect(() => {
-    // VNPay response codes: '00' is success
-    const responseCode = searchParams.get('vnp_ResponseCode')
-    // Transaction reference should be our order ID
-    const txnRef = searchParams.get('vnp_TxnRef')
+    const status = searchParams.get('status')
+    const responseCode = searchParams.get('responseCode')
+    const orderIdParam = searchParams.get('orderId')
 
-    if (txnRef) setOrderId(txnRef)
+    if (orderIdParam) setOrderId(orderIdParam)
 
-    if (responseCode === '00') {
+    if (status === 'success' || responseCode === '00') {
       setIsSuccess(true)
     } else {
       setIsSuccess(false)

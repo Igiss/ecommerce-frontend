@@ -10,7 +10,7 @@ export function createOrder(body: any) {
 
 export function getMyOrders(params: { page?: number; limit?: number } = {}) {
   const query = toQueryString(params)
-  return apiClient<any>(`/orders/my-orders${query ? `?${query}` : ''}`, {
+  return apiClient<any>(`/orders/me${query ? `?${query}` : ''}`, {
     method: 'GET'
   })
 }
@@ -22,7 +22,7 @@ export function getOrderById(id: string) {
 }
 
 export function createVNPayUrl(orderId: string) {
-  return apiClient<{ paymentUrl: string }>(`/orders/${orderId}/vnpay`, {
+  return apiClient<{ paymentUrl: string }>(`/payments/vnpay/${orderId}/url`, {
     method: 'POST'
   })
 }
