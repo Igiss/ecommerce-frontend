@@ -196,3 +196,24 @@ export function deleteProduct(id: string) {
     method: 'DELETE'
   })
 }
+
+// Admin Users Management
+export function getAdminUsers() {
+  return apiClient<any[]>('/users', {
+    method: 'GET'
+  })
+}
+
+export function updateUserStatus(userId: string, status: 'pending' | 'active' | 'blocked') {
+  return apiClient<any>(`/users/${userId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  })
+}
+
+export function updateUserRole(userId: string, role: 'user' | 'owner' | 'admin') {
+  return apiClient<any>(`/users/${userId}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role })
+  })
+}

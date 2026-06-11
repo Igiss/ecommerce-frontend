@@ -6,6 +6,7 @@ interface User {
   email: string
   avatar?: string
   isAdmin: boolean
+  isOwner: boolean
   fullName?: string
   role?: string
   phone?: string
@@ -32,6 +33,7 @@ export const useAuthStore = create<AuthState>((set) => {
         if (parsed) {
           parsed.name = parsed.fullName || parsed.name || ''
           parsed.isAdmin = parsed.role === 'admin'
+          parsed.isOwner = parsed.role === 'owner'
           initialUser = parsed
         }
       }
@@ -50,7 +52,8 @@ export const useAuthStore = create<AuthState>((set) => {
         normalizedUser = {
           ...user,
           name: user.fullName || user.name || '',
-          isAdmin: user.role === 'admin'
+          isAdmin: user.role === 'admin',
+          isOwner: user.role === 'owner'
         }
       }
 

@@ -111,18 +111,55 @@ export default function CheckoutPage() {
     setAppliedCoupon(null)
     setDiscountAmount(0)
 
-    if (!couponCode.trim()) return
+    const rawCode = couponCode.trim().toUpperCase()
+    if (!rawCode) return
 
     setCouponLoading(true)
-    try {
-      const result = await validateCoupon(couponCode.trim().toUpperCase(), itemsPrice)
-      setAppliedCoupon(result.coupon || result)
-      setDiscountAmount(result.actualDiscount || result.discountAmount || 0)
-    } catch (err: any) {
-      setCouponError(err.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.')
-    } finally {
-      setCouponLoading(false)
+
+    // Build unique list of vendor prefixes for products in the cart
+    const vendorPrefixes = new Set<string>()
+    items.forEach((item) => {
+      const creatorId = (item.product as any).createdBy?.id || (item.product as any).createdBy?._id || (item.product as any).createdBy
+      if (creatorId) {
+        vendorPrefixes.add(`C_${creatorId.substring(0, 5).toUpperCase()}_`)
+      }
+    })
+
+    // Prepare list of codes to try: first the raw code, then prepended with vendor prefixes
+    const codesToTry = [rawCode]
+    vendorPrefixes.forEach((prefix) => {
+      if (!rawCode.startsWith(prefix)) {
+        codesToTry.push(`${prefix}${rawCode}`)
+      }
+    })
+
+    let lastError: any = null
+    let successResult: any = null
+
+    for (const codeToValidate of codesToTry) {
+      try {
+        const result = await validateCoupon(codeToValidate, itemsPrice)
+        successResult = { result, codeToValidate }
+        break // Coupon is valid!
+      } catch (err: any) {
+        lastError = err
+      }
     }
+
+    if (successResult) {
+      const { result, codeToValidate } = successResult
+      const matchedPrefix = Array.from(vendorPrefixes).find(p => codeToValidate.startsWith(p))
+      const cleanCode = matchedPrefix ? codeToValidate.replace(matchedPrefix, '') : codeToValidate
+
+      setAppliedCoupon({
+        ...(result.coupon || result),
+        code: cleanCode
+      })
+      setDiscountAmount(result.actualDiscount || result.discountAmount || 0)
+    } else {
+      setCouponError(lastError?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.')
+    }
+    setCouponLoading(false)
   }
 
   // Handle Order Submit

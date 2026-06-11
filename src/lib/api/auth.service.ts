@@ -33,3 +33,10 @@ export function changePassword(body: any) {
     body: JSON.stringify(body)
   })
 }
+
+export function registerOwner(body: any) {
+  return apiClient<any>('/auth/register-owner', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  })
+}

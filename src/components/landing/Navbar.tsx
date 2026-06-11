@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { useCartStore } from '@/store/cart.store'
 import { useWishlistStore } from '@/store/wishlist.store'
-import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, X, Search, Heart } from 'lucide-react'
+import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, X, Search, Heart, Store } from 'lucide-react'
 
 export function Navbar() {
   const router = useRouter()
@@ -131,10 +131,30 @@ export function Navbar() {
                       <Link
                         href="/admin/dashboard"
                         onClick={() => setDropdownOpen(false)}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-50 hover:text-amber-800 transition-colors"
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-50 hover:text-amber-800 transition-colors font-medium"
                       >
                         <LayoutDashboard className="h-4 w-4 text-stone-400" />
                         Quản lý (Admin)
+                      </Link>
+                    )}
+                    {user.isOwner && (
+                      <Link
+                        href="/owner/dashboard"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-50 hover:text-amber-800 transition-colors font-medium"
+                      >
+                        <Store className="h-4 w-4 text-stone-400" />
+                        Kênh người bán
+                      </Link>
+                    )}
+                    {!user.isAdmin && !user.isOwner && (
+                      <Link
+                        href="/register-owner"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-50 hover:text-amber-800 transition-colors font-medium"
+                      >
+                        <Store className="h-4 w-4 text-stone-400" />
+                        Đăng ký bán hàng
                       </Link>
                     )}
                     <Link
@@ -264,6 +284,33 @@ export function Navbar() {
             >
               Giới thiệu
             </Link>
+            {user?.isAdmin && (
+              <Link
+                href="/admin/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-bold text-amber-800 hover:bg-stone-100"
+              >
+                Quản lý (Admin)
+              </Link>
+            )}
+            {user?.isOwner && (
+              <Link
+                href="/owner/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-bold text-amber-800 hover:bg-stone-100"
+              >
+                Kênh người bán (Owner)
+              </Link>
+            )}
+            {user && !user.isAdmin && !user.isOwner && (
+              <Link
+                href="/register-owner"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-bold text-amber-800 hover:bg-stone-100"
+              >
+                Đăng ký bán hàng
+              </Link>
+            )}
             {!user && (
               <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-stone-200">
                 <Link
