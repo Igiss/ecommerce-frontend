@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getAdminUsers, updateUserStatus } from '@/lib/api/admin.service'
+import { getAdminUsers, updateUserStatus, updateUserRole } from '@/lib/api/admin.service'
 import { UserCheck, UserX, Search, ShieldAlert, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 
 export default function AdminUsersPage() {
@@ -74,6 +74,21 @@ export default function AdminUsersPage() {
       )
     } catch (err: any) {
       alert(err.message || 'Lỗi cập nhật trạng thái người dùng.')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleUpdateRole = async (userId: string, newRole: 'user' | 'owner' | 'admin') => {
+    setActionLoading(userId)
+    try {
+      await updateUserRole(userId, newRole)
+      // Update local state directly
+      setUsers((prevUsers) =>
+        prevUsers.map((u) => (u.id === userId || u._id === userId ? { ...u, role: newRole } : u))
+      )
+    } catch (err: any) {
+      alert(err.message || 'Lỗi cập nhật vai trò người dùng.')
     } finally {
       setActionLoading(null)
     }
@@ -244,8 +259,8 @@ export default function AdminUsersPage() {
                           <Loader2 className="h-5 w-5 animate-spin text-amber-800" />
                         ) : (
                           <>
-                            {/* Phê duyệt / Mở khóa */}
-                            {u.status !== 'active' && (
+                            {/* Phê duyệt / Mở khóa cho Owner */}
+                            {u.role === 'owner' && u.status !== 'active' && (
                               <button
                                 onClick={() => handleUpdateStatus(userId, 'active')}
                                 className="inline-flex items-center gap-1 rounded-lg bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 text-xs font-bold shadow-sm transition-colors cursor-pointer"
@@ -256,8 +271,8 @@ export default function AdminUsersPage() {
                               </button>
                             )}
 
-                            {/* Khóa / Từ chối */}
-                            {u.status !== 'blocked' && (
+                            {/* Khóa / Từ chối cho Owner */}
+                            {u.role === 'owner' && u.status !== 'blocked' && (
                               <button
                                 onClick={() => handleUpdateStatus(userId, 'blocked')}
                                 className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white hover:bg-red-50 text-red-650 px-2.5 py-1 text-xs font-bold shadow-xs transition-colors cursor-pointer"
@@ -268,8 +283,32 @@ export default function AdminUsersPage() {
                               </button>
                             )}
 
-                            {/* Info for normal users or admins */}
-                            {u.role !== 'owner' && (
+                            {/* Cho phép nâng cấp User thường thành Owner */}
+                            {u.role === 'user' && (
+                              <button
+                                onClick={() => handleUpdateRole(userId, 'owner')}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white px-2.5 py-1.5 text-xs font-bold shadow-sm transition-colors cursor-pointer"
+                                title="Nâng cấp tài khoản thành chủ shop"
+                              >
+                                <UserCheck className="h-3.5 w-3.5" />
+                                Lên Shop
+                              </button>
+                            )}
+
+                            {/* Cho phép hạ cấp Owner xuống User thường */}
+                            {u.role === 'owner' && (
+                              <button
+                                onClick={() => handleUpdateRole(userId, 'user')}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 px-2.5 py-1.5 text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                                title="Hạ cấp tài khoản xuống người mua thường"
+                              >
+                                <UserX className="h-3.5 w-3.5" />
+                                Hạ cấp
+                              </button>
+                            )}
+
+                            {/* Info for admins */}
+                            {u.role === 'admin' && (
                               <span className="text-xs text-stone-400 italic">Không khả dụng</span>
                             )}
                           </>

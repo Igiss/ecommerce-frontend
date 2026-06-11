@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useAuthStore } from '@/store/auth.store'
 import { registerOwner } from '@/lib/api/auth.service'
 import { Eye, EyeOff, AlertCircle, CheckCircle, Store, ArrowLeft } from 'lucide-react'
 
 export default function RegisterOwnerPage() {
+  const { user } = useAuthStore()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -104,6 +106,19 @@ export default function RegisterOwnerPage() {
           <div className="flex items-center gap-2.5 rounded-lg bg-red-50 p-4 text-sm text-red-700 border border-red-200">
             <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
             <p>{error}</p>
+          </div>
+        )}
+
+        {user && (
+          <div className="rounded-xl bg-amber-50/70 border border-amber-250 p-4 text-xs text-amber-900 space-y-2">
+            <p className="font-bold">Đang đăng nhập: {user.email}</p>
+            <p className="leading-relaxed text-[11px] text-amber-800">
+              Hệ thống hiện tại phân tách tài khoản người mua và người bán. Vì email trên đã đăng ký, điền lại email này sẽ bị báo lỗi trùng lặp. Bạn có thể:
+            </p>
+            <ul className="list-disc pl-4 space-y-1 text-[11px] text-amber-800">
+              <li><strong>Đăng ký shop mới:</strong> Vui lòng điền một địa chỉ email chưa từng đăng ký.</li>
+              <li><strong>Dùng tài khoản hiện tại:</strong> Vui lòng liên hệ Admin để nâng cấp tài khoản Google/Buyer của bạn lên Kênh người bán trực tiếp.</li>
+            </ul>
           </div>
         )}
 
