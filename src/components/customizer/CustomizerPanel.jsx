@@ -1,11 +1,27 @@
 import React, { useState } from 'react'
 import { useCustomizerStore } from '../../store/customizer.store'
+import { useCartStore } from '../../store/cart.store'
 
 const swatches = ['#f7f1e8', '#ffffff', '#b9d8c2', '#f4b860', '#e56b6f', '#30343f']
 
 export default function CustomizerPanel({ product }) {
   const snap = useCustomizerStore()
   const [status, setStatus] = useState('')
+  const addItem = useCartStore((state) => state.addItem)
+
+  const handleAddToCart = () => {
+    addItem(product, 1, {
+      baseColor: snap.baseColor,
+      accentColor: snap.accentColor,
+      designImage: snap.designImage,
+      designName: snap.designName,
+      printX: snap.printX,
+      printY: snap.printY,
+      printSize: snap.printSize
+    })
+    setStatus('Đã thêm sản phẩm vào giỏ hàng!')
+    setTimeout(() => setStatus(''), 2000)
+  }
 
   const handleFile = (event) => {
     const file = event.target.files?.[0]
@@ -137,6 +153,10 @@ export default function CustomizerPanel({ product }) {
           </label>
         </div>
       </div>
+
+      <button className="primary-btn wide" onClick={handleAddToCart} style={{ backgroundColor: '#854d0e', marginBottom: '10px' }}>
+        Thêm vào giỏ hàng
+      </button>
 
       <button className="primary-btn wide" onClick={saveDesign}>
         Save draft
