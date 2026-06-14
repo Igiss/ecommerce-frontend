@@ -45,7 +45,11 @@ function ProductsCatalogContent() {
     }
 
     if (productIdParam && allProducts.length > 0) {
-      const found = allProducts.find((p) => p.id === productIdParam || (p as any)._id === productIdParam)
+      const found = allProducts.find(
+        (p) =>
+          String(p.id) === String(productIdParam) ||
+          String((p as any)._id) === String(productIdParam)
+      )
       if (found) {
         setSelectedProduct(found)
       } else {

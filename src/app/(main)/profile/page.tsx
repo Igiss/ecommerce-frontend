@@ -13,7 +13,7 @@ import Link from 'next/link'
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { user, setUser } = useAuthStore()
+  const { user, setUser, initialized } = useAuthStore()
 
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState('profile')
@@ -320,7 +320,13 @@ export default function ProfilePage() {
     }
   }
 
-  if (!mounted) return null
+  if (!mounted || !initialized) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-800 border-t-transparent"></div>
+      </div>
+    )
+  }
 
   if (!user) {
     router.push('/login?redirect=/profile')

@@ -11,7 +11,7 @@ import { AlertCircle, Ticket, CreditCard, Truck, User, MapPin, Phone, ShieldChec
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { user } = useAuthStore()
+  const { user, initialized } = useAuthStore()
   const { items, getItemsPrice, clearCart } = useCartStore()
 
   const [mounted, setMounted] = useState(false)
@@ -43,12 +43,14 @@ export default function CheckoutPage() {
   // Redirect if not logged in or cart is empty
   useEffect(() => {
     setMounted(true)
-    if (!user) {
-      router.push('/login?redirect=/checkout')
-    } else {
-      setFullName(user.name || '')
+    if (initialized) {
+      if (!user) {
+        router.push('/login?redirect=/checkout')
+      } else {
+        setFullName(user.name || '')
+      }
     }
-  }, [user, router])
+  }, [user, initialized, router])
 
   useEffect(() => {
     if (user) {
@@ -96,7 +98,7 @@ export default function CheckoutPage() {
     }
   }
 
-  if (!mounted) {
+  if (!mounted || !initialized) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-800 border-t-transparent"></div>

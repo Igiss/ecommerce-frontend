@@ -14,7 +14,7 @@ interface OrderDetailPageProps {
 export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const router = useRouter()
   const { id } = use(params)
-  const { user } = useAuthStore()
+  const { user, initialized } = useAuthStore()
 
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -24,6 +24,8 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
 
   useEffect(() => {
     setMounted(true)
+    if (!initialized) return
+
     if (!user) {
       router.push(`/login?redirect=/orders/${id}`)
       return
@@ -64,9 +66,9 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
         setError(err.message || 'Không thể lấy thông tin chi tiết đơn hàng.')
       })
       .finally(() => setLoading(false))
-  }, [id, user, router])
+  }, [id, user, initialized, router])
 
-  if (!mounted || loading) {
+  if (!mounted || !initialized || loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-800 border-t-transparent"></div>

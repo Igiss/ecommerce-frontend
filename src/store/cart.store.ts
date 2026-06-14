@@ -26,9 +26,9 @@ interface CartState {
 
 // Generate unique key for items with same product but different customization
 export const getCartItemKey = (item: CartItem) => {
-  if (!item.customization) return item.product.id
+  if (!item.customization) return String(item.product.id)
   const c = item.customization
-  return `${item.product.id}-${c.baseColor}-${c.accentColor}-${c.designName}`
+  return `${String(item.product.id)}-${c.baseColor}-${c.accentColor}-${c.designName}`
 }
 
 export const useCartStore = create<CartState>((set, get) => {
@@ -74,7 +74,7 @@ export const useCartStore = create<CartState>((set, get) => {
           const itemKey = getCartItemKey(item)
           return itemKey !== customizationId
         }
-        return item.product.id !== productId
+        return String(item.product.id) !== String(productId)
       })
 
       if (typeof window !== 'undefined') {
@@ -86,7 +86,7 @@ export const useCartStore = create<CartState>((set, get) => {
     updateQty: (productId, qty, customizationId) => {
       const currentItems = get().items
       const updatedItems = currentItems.map(item => {
-        const matchesProduct = item.product.id === productId
+        const matchesProduct = String(item.product.id) === String(productId)
         const matchesCustom = customizationId ? getCartItemKey(item) === customizationId : !item.customization
 
         if (matchesProduct && matchesCustom) {
