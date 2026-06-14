@@ -9,7 +9,7 @@ import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const { user, setAuth } = useAuthStore()
+  const { user, setUser } = useAuthStore()
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -48,8 +48,9 @@ export default function RegisterPage() {
 
     try {
       const data = await registerUser({ fullName: name, email, password })
-      setAuth(data.user || data, data.accessToken || data.token)
-      router.push('/')
+      setUser(data.user || data)
+      router.replace('/')
+      router.refresh()
     } catch (err: any) {
       setError(err.message || 'Có lỗi xảy ra trong quá trình đăng ký')
     } finally {

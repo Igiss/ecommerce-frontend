@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
+import { logoutUser } from '@/lib/api/auth.service'
 import Link from 'next/link'
 import { LayoutDashboard, ShoppingCart, Calendar, Ticket, ArrowLeft, Loader2, LogOut, Shield, Store } from 'lucide-react'
 
@@ -13,17 +14,20 @@ interface OwnerLayoutProps {
 export default function OwnerLayout({ children }: OwnerLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const { user, logout } = useAuthStore()
+  const { user, initialized, clearAuth } = useAuthStore()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    if (mounted && (!user || !user.isOwner)) {
+  }, [])
+
+  useEffect(() => {
+    if (mounted && initialized && (!user || !user.isOwner)) {
       router.push('/')
     }
-  }, [user, mounted, router])
+  }, [user, initialized, mounted, router])
 
-  if (!mounted) {
+  if (!mounted || !initialized) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-stone-50">
         <div className="text-center">
@@ -78,10 +82,10 @@ export default function OwnerLayout({ children }: OwnerLayoutProps) {
         {/* User Info Card */}
         <div className="p-4 border-b border-amber-900 flex items-center gap-3">
           <div className="h-9 w-9 rounded-full bg-amber-900/50 flex items-center justify-center shrink-0 font-bold text-white text-sm border border-amber-800">
-            {user.name.charAt(0).toUpperCase()}
+            {(user.name || '').charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-bold text-white truncate">{user.name}</p>
+            <p className="text-xs font-bold text-white truncate">{user.name || ''}</p>
             <p className="text-[10px] text-amber-300 truncate mt-0.5">{user.email}</p>
           </div>
         </div>
@@ -118,9 +122,16 @@ export default function OwnerLayout({ children }: OwnerLayoutProps) {
             Về Cửa hàng
           </Link>
           <button
-            onClick={() => {
-              logout()
-              router.push('/')
+            onClick={async () => {
+              try {
+                await logoutUser()
+              } catch {
+                // Ignore
+              } finally {
+                clearAuth()
+                router.replace('/')
+                router.refresh()
+              }
             }}
             className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-300 hover:bg-red-950/20 hover:text-red-200 transition-colors"
           >

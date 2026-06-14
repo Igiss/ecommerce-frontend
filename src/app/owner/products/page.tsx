@@ -1,8 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getProducts } from '@/lib/api/products.service'
-import { createProduct, updateProduct, deleteProduct, uploadProductImage } from '@/lib/api/admin.service'
+import {
+  getOwnerProducts,
+  createOwnerProduct,
+  updateOwnerProduct,
+  deleteOwnerProduct,
+  uploadOwnerProductImage
+} from '@/lib/api/owner.service'
 import { useAuthStore } from '@/store/auth.store'
 import type { Product } from '@/types/product'
 import { Plus, Edit2, Trash2, X, Upload, AlertCircle, Sparkles } from 'lucide-react'
@@ -21,9 +26,9 @@ export default function OwnerProductsPage() {
   // Form Fields
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [price, setPrice] = useState(0)
+  const [price, setPrice] = useState<number | string>('')
   const [category, setCategory] = useState('')
-  const [countInStock, setCountInStock] = useState(0)
+  const [countInStock, setCountInStock] = useState<number | string>('')
   const [modelUrl, setModelUrl] = useState('')
   const [imageFiles, setImageFiles] = useState<FileList | null>(null)
   
@@ -37,7 +42,7 @@ export default function OwnerProductsPage() {
   // Fetch product list and filter for this owner
   const fetchProductsList = () => {
     setLoading(true)
-    getProducts()
+    getOwnerProducts()
       .then((data: any) => {
         let list: Product[] = []
         if (Array.isArray(data)) {
@@ -56,13 +61,7 @@ export default function OwnerProductsPage() {
           id: item.id || item._id
         }))
 
-        // Filter products created by current owner
-        const filtered = normalized.filter((product: any) => {
-          const creatorId = product.createdBy?.id || product.createdBy?._id || product.createdBy
-          return creatorId === user?.id
-        })
-
-        setProducts(filtered)
+        setProducts(normalized)
       })
       .catch((err) => {
         setError('Không thể tải danh sách sản phẩm.')
@@ -94,9 +93,9 @@ export default function OwnerProductsPage() {
     setEditingProduct(null)
     setName('')
     setDescription('')
-    setPrice(0)
+    setPrice('')
     setCategory(categoriesList[0]?.id || categoriesList[0]?._id || '')
-    setCountInStock(10)
+    setCountInStock('')
     setModelUrl('')
     setImageFiles(null)
     setImageUrl('')
@@ -124,7 +123,7 @@ export default function OwnerProductsPage() {
   const handleDeleteClick = async (id: string) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này không?')) return
     try {
-      await deleteProduct(id)
+      await deleteOwnerProduct(id)
       fetchProductsList()
     } catch (err: any) {
       alert(err.message || 'Lỗi khi xóa sản phẩm.')
@@ -137,8 +136,17 @@ export default function OwnerProductsPage() {
     setFormError('')
     setFormLoading(true)
 
-    if (price <= 0 || countInStock < 0) {
-      setFormError('Giá bán và số lượng trong kho không hợp lệ.')
+    const parsedPrice = Number(price)
+    const parsedStock = Number(countInStock)
+
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      setFormError('Đơn giá phải lớn hơn 0.')
+      setFormLoading(false)
+      return
+    }
+
+    if (isNaN(parsedStock) || parsedStock < 0) {
+      setFormError('Số lượng trong kho không được nhỏ hơn 0.')
       setFormLoading(false)
       return
     }
@@ -155,7 +163,7 @@ export default function OwnerProductsPage() {
       // 1. Upload local files if any
       if (imageFiles && imageFiles.length > 0) {
         for (let i = 0; i < imageFiles.length; i++) {
-          const res = await uploadProductImage(imageFiles[i])
+          const res = await uploadOwnerProductImage(imageFiles[i])
           if (res && res.url) {
             uploadedImageUrls.push(res.url)
           }
@@ -176,17 +184,17 @@ export default function OwnerProductsPage() {
       const payload = {
         name,
         description,
-        price,
-        stock: countInStock,
+        price: parsedPrice,
+        stock: parsedStock,
         categoryId: category,
         modelUrl: modelUrl || undefined,
         images: finalImages
       }
 
       if (editingProduct) {
-        await updateProduct(editingProduct.id, payload)
+        await updateOwnerProduct(editingProduct.id, payload)
       } else {
-        await createProduct(payload)
+        await createOwnerProduct(payload)
       }
 
       setIsOpen(false)
@@ -359,9 +367,9 @@ export default function OwnerProductsPage() {
                   <input
                     type="number"
                     required
-                    min="0"
+                    min="1"
                     value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
+                    onChange={(e) => setPrice(e.target.value)}
                     className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
                   />
                 </div>
@@ -372,7 +380,7 @@ export default function OwnerProductsPage() {
                     required
                     min="0"
                     value={countInStock}
-                    onChange={(e) => setCountInStock(Number(e.target.value))}
+                    onChange={(e) => setCountInStock(e.target.value)}
                     className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
                   />
                 </div>

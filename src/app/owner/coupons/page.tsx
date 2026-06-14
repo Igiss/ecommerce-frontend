@@ -1,7 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getCoupons, createCoupon, updateCoupon, deleteCoupon } from '@/lib/api/admin.service'
+import {
+  getOwnerCoupons,
+  createOwnerCoupon,
+  updateOwnerCoupon,
+  deleteOwnerCoupon
+} from '@/lib/api/owner.service'
 import { useAuthStore } from '@/store/auth.store'
 import { Plus, Edit2, Trash2, X, AlertCircle, Calendar, Ticket } from 'lucide-react'
 
@@ -28,24 +33,11 @@ export default function OwnerCouponsPage() {
   const [formError, setFormError] = useState('')
   const [formLoading, setFormLoading] = useState(false)
 
-  // Owner specific prefix: C_OWNERID_
-  const getOwnerPrefix = () => {
-    if (!user?.id) return ''
-    return `C_${user.id.substring(0, 5).toUpperCase()}_`
-  }
-
   const fetchCouponsList = () => {
-    if (!user?.id) return
     setLoading(true)
-    const prefix = getOwnerPrefix()
-    
-    getCoupons()
+    getOwnerCoupons()
       .then((data: any) => {
-        let list = Array.isArray(data) ? data : []
-        
-        // Filter coupons that start with this owner's prefix
-        const filtered = list.filter((c: any) => c.code && c.code.startsWith(prefix))
-        setCoupons(filtered)
+        setCoupons(Array.isArray(data) ? data : [])
       })
       .catch((err) => {
         setError('Không thể tải danh sách mã giảm giá.')
@@ -75,13 +67,7 @@ export default function OwnerCouponsPage() {
   // Open modal for edit
   const handleEditClick = (coupon: any) => {
     setEditingCoupon(coupon)
-    const prefix = getOwnerPrefix()
-    // Strip prefix for clean display in form edit
-    const cleanCode = coupon.code.startsWith(prefix) 
-      ? coupon.code.replace(prefix, '') 
-      : coupon.code
-
-    setCode(cleanCode)
+    setCode(coupon.code)
     setDiscountType(coupon.discountType || 'percentage')
     setDiscountAmount(coupon.discountAmount || 0)
     setMinOrderValue(coupon.minOrderValue || 0)
@@ -98,7 +84,7 @@ export default function OwnerCouponsPage() {
   const handleDeleteClick = async (id: string) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa mã giảm giá này không?')) return
     try {
-      await deleteCoupon(id)
+      await deleteOwnerCoupon(id)
       fetchCouponsList()
     } catch (err: any) {
       alert(err.message || 'Lỗi khi xóa mã giảm giá.')
@@ -123,21 +109,16 @@ export default function OwnerCouponsPage() {
       return
     }
 
-    const prefix = getOwnerPrefix()
     const rawCleanCode = code.trim().toUpperCase()
-    
-    // Prevent adding prefixes manually
-    if (rawCleanCode.startsWith('C_') && rawCleanCode.includes('_')) {
-      setFormError('Mã giảm giá không được chứa tiền tố hệ thống "C_***_".')
+    if (!rawCleanCode) {
+      setFormError('Vui lòng nhập mã giảm giá.')
       setFormLoading(false)
       return
     }
 
-    const fullCode = `${prefix}${rawCleanCode}`
-
     try {
       const couponData = {
-        code: fullCode,
+        code: rawCleanCode,
         discountType,
         discountAmount,
         minOrderValue,
@@ -148,9 +129,9 @@ export default function OwnerCouponsPage() {
       }
 
       if (editingCoupon) {
-        await updateCoupon(editingCoupon._id || editingCoupon.id, couponData)
+        await updateOwnerCoupon(editingCoupon._id || editingCoupon.id, couponData)
       } else {
-        await createCoupon(couponData)
+        await createOwnerCoupon(couponData)
       }
 
       setIsOpen(false)
@@ -161,8 +142,6 @@ export default function OwnerCouponsPage() {
       setFormLoading(false)
     }
   }
-
-  const prefix = getOwnerPrefix()
 
   return (
     <div className="space-y-6">
@@ -220,18 +199,13 @@ export default function OwnerCouponsPage() {
               {coupons.map((coupon) => {
                 const isExpired = new Date(coupon.expiryDate) < new Date()
                 const dateStr = new Date(coupon.expiryDate).toLocaleDateString('vi-VN')
-                
-                // Strip prefix for table display
-                const cleanCode = coupon.code.startsWith(prefix)
-                  ? coupon.code.replace(prefix, '')
-                  : coupon.code
 
                 return (
                   <tr key={coupon._id || coupon.id} className="hover:bg-stone-50/45 transition-colors">
                     <td className="py-3.5 px-6 font-mono text-xs font-extrabold text-amber-800 select-all">
                       <div className="flex items-center gap-1.5 mt-1">
                         <Ticket className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                        <span title={`Mã đầy đủ: ${coupon.code}`}>{cleanCode}</span>
+                        <span>{coupon.code}</span>
                       </div>
                     </td>
                     <td className="py-3.5 px-6 text-xs text-stone-600">
@@ -315,22 +289,14 @@ export default function OwnerCouponsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-stone-555 uppercase">Mã giảm giá (Code)</label>
-                <div className="mt-1.5 flex rounded-lg border border-stone-300 focus-within:ring-1 focus-within:ring-amber-600 focus-within:border-amber-600 overflow-hidden">
-                  <span className="bg-stone-100 text-stone-500 text-xs font-mono font-bold px-3 flex items-center border-r border-stone-200 select-none">
-                    {prefix}
-                  </span>
-                  <input
-                    type="text"
-                    required
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    placeholder="KM10, FREESHIP..."
-                    className="flex-1 px-3 py-2 text-sm uppercase placeholder:text-stone-400 focus:outline-none"
-                  />
-                </div>
-                <p className="text-[10px] text-stone-400 mt-1">
-                  Mã đầy đủ trên hệ thống sẽ là: <code className="font-bold text-amber-800">{prefix}{code.trim().toUpperCase() || 'CODE'}</code>
-                </p>
+                <input
+                  type="text"
+                  required
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="KM10, FREESHIP..."
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 uppercase"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">

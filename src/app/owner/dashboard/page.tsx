@@ -1,73 +1,21 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { getDashboardStats, getRevenueChart, getTopProducts } from '@/lib/api/admin.service'
-import { DollarSign, ShoppingBag, Package, AlertTriangle, ArrowUpRight, Store } from 'lucide-react'
+import { useEffect, useState } from "react"
+import { getOwnerDashboard } from "@/lib/api/owner.service"
+import { DollarSign, ShoppingBag, Package, Ticket, ShoppingCart, Store } from "lucide-react"
 
 export default function OwnerDashboardPage() {
   const [stats, setStats] = useState<any>(null)
-  const [chartData, setChartData] = useState<any[]>([])
-  const [topProducts, setTopProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const [error, setError] = useState("")
 
   useEffect(() => {
-    Promise.all([getDashboardStats(), getRevenueChart(), getTopProducts()])
-      .then(([statsRes, chartRes, topRes]) => {
-        setStats(statsRes)
-        
-        // Normalize and pad revenue-chart data
-        const normalizedChart: any[] = []
-        const isMonthly = (chartRes || []).some((item: any) => item._id && !('day' in item._id))
-
-        if (isMonthly) {
-          for (let i = 11; i >= 0; i--) {
-            const d = new Date()
-            d.setMonth(d.getMonth() - i)
-            const m = d.getMonth() + 1
-            const y = d.getFullYear()
-            const dateStr = `${m}/${y}`
-            
-            const match = (chartRes || []).find((item: any) => {
-              if (item._id && typeof item._id === 'object') {
-                return Number(item._id.month) === m && Number(item._id.year) === y
-              }
-              return false
-            })
-
-            normalizedChart.push({
-              date: dateStr,
-              revenue: match ? match.revenue : 0,
-              orders: match ? match.orders : 0
-            })
-          }
-        } else {
-          for (let i = 6; i >= 0; i--) {
-            const d = new Date()
-            d.setDate(d.getDate() - i)
-            const dateStr = `${d.getDate()}/${d.getMonth() + 1}`
-            
-            const match = (chartRes || []).find((item: any) => {
-              if (item._id && typeof item._id === 'object') {
-                return Number(item._id.day) === d.getDate() && Number(item._id.month) === (d.getMonth() + 1)
-              }
-              return false
-            })
-
-            normalizedChart.push({
-              date: dateStr,
-              revenue: match ? match.revenue : 0,
-              orders: match ? match.orders : 0
-            })
-          }
-        }
-
-        setChartData(normalizedChart)
-        setTopProducts(topRes)
+    getOwnerDashboard()
+      .then((data: any) => {
+        setStats(data)
       })
       .catch((err: any) => {
-        setError(err.message || 'Không thể tải dữ liệu thống kê cửa hàng. Hãy kiểm tra kết nối server.')
+        setError(err.message || "Không thể tải dữ liệu thống kê cửa hàng.")
       })
       .finally(() => setLoading(false))
   }, [])
@@ -82,7 +30,7 @@ export default function OwnerDashboardPage() {
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center shadow-xs">
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center shadow-sm">
         <p className="text-red-700 font-bold mb-4">{error}</p>
         <button
           onClick={() => window.location.reload()}
@@ -94,32 +42,38 @@ export default function OwnerDashboardPage() {
     )
   }
 
-  const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map(d => d.revenue || 0), 1) : 1
-
-  // SVG Chart Dimensions
-  const svgWidth = 600
-  const svgHeight = 245
-  const paddingLeft = 55
-  const paddingRight = 20
-  const paddingTop = 25
-  const paddingBottom = 40
-  const chartWidth = svgWidth - paddingLeft - paddingRight
-  const chartHeight = svgHeight - paddingTop - paddingBottom
-
-  const points = chartData.map((d: any, idx: number) => {
-    const x = chartData.length === 1
-      ? paddingLeft + chartWidth / 2
-      : paddingLeft + (idx * (chartWidth / (chartData.length - 1)))
-    const y = (svgHeight - paddingBottom) - ((d.revenue / maxRevenue) * chartHeight)
-    return { x, y, data: d, idx }
-  })
-
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
-  const areaPath = points.length > 0 
-    ? `${linePath} L ${points[points.length - 1].x} ${svgHeight - paddingBottom} L ${points[0].x} ${svgHeight - paddingBottom} Z` 
-    : ''
-
-  const gridValues = [0, 0.25, 0.5, 0.75, 1]
+  const statItems = [
+    {
+      label: "Doanh thu cửa hàng",
+      value: `${(stats?.revenue || 0).toLocaleString("vi-VN")}đ`,
+      icon: DollarSign,
+      color: "bg-amber-50 text-amber-800 border-amber-100",
+    },
+    {
+      label: "Đơn hàng của shop",
+      value: stats?.orderCount || 0,
+      icon: ShoppingBag,
+      color: "bg-blue-50 text-blue-800 border-blue-100",
+    },
+    {
+      label: "Số lượng cốc đã bán",
+      value: stats?.itemCount || 0,
+      icon: ShoppingCart,
+      color: "bg-emerald-50 text-emerald-800 border-emerald-100",
+    },
+    {
+      label: "Sản phẩm đang bán",
+      value: stats?.productCount || 0,
+      icon: Package,
+      color: "bg-purple-50 text-purple-800 border-purple-100",
+    },
+    {
+      label: "Mã giảm giá đã tạo",
+      value: stats?.couponCount || 0,
+      icon: Ticket,
+      color: "bg-rose-50 text-rose-800 border-rose-100",
+    },
+  ]
 
   return (
     <div className="space-y-8">
@@ -129,273 +83,44 @@ export default function OwnerDashboardPage() {
           <Store className="h-6 w-6 text-amber-800" />
           Kênh người bán - Tổng quan
         </h1>
-        <p className="text-xs text-stone-550 mt-1">Theo dõi kết quả kinh doanh, đơn hàng và kho hàng của shop bạn.</p>
+        <p className="text-xs text-stone-550 mt-1">
+          Theo dõi kết quả kinh doanh và hiệu suất cửa hàng của bạn.
+        </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Revenue Card */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-xs flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center shrink-0">
-            <DollarSign className="h-6 w-6" />
-          </div>
-          <div>
-            <span className="text-xs text-stone-400 font-semibold uppercase">Doanh thu cửa hàng</span>
-            <h3 className="text-lg font-extrabold text-stone-900 mt-0.5">
-              {(stats?.totalRevenue || stats?.revenue || 0).toLocaleString('vi-VN')}đ
-            </h3>
-          </div>
-        </div>
-
-        {/* Orders Card */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-xs flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-blue-50 text-blue-800 flex items-center justify-center shrink-0">
-            <ShoppingBag className="h-6 w-6" />
-          </div>
-          <div className="flex-1">
-            <span className="text-xs text-stone-400 font-semibold uppercase">Đơn hàng của shop</span>
-            <h3 className="text-lg font-extrabold text-stone-900 mt-0.5">{stats?.totalOrders || 0}</h3>
-            <p className="text-[10px] text-stone-500 mt-0.5">
-              {stats?.pendingOrders || 0} đang chờ | {stats?.completedOrders || stats?.deliveredOrders || 0} đã giao
-            </p>
-          </div>
-        </div>
-
-        {/* Products Card */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-xs flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-green-50 text-green-800 flex items-center justify-center shrink-0">
-            <Package className="h-6 w-6" />
-          </div>
-          <div className="flex-1">
-            <span className="text-xs text-stone-400 font-semibold uppercase">Sản phẩm đang bán</span>
-            <h3 className="text-lg font-extrabold text-stone-900 mt-0.5">{stats?.totalProducts || 0}</h3>
-            {stats?.lowStockProducts > 0 && (
-              <p className="text-[10px] text-red-650 mt-0.5 flex items-center gap-1 font-bold">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                {stats.lowStockProducts} sản phẩm sắp hết hàng
-              </p>
-            )}
-          </div>
-        </div>
+        {statItems.map((item, idx) => {
+          const Icon = item.icon
+          return (
+            <div
+              key={idx}
+              className="rounded-2xl border border-stone-250/50 bg-white p-6 shadow-sm flex items-center gap-5 transition-all hover:shadow-md"
+            >
+              <div className={`h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 border ${item.color}`}>
+                <Icon className="h-7 w-7" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] text-stone-400 font-bold uppercase tracking-wider block">
+                  {item.label}
+                </span>
+                <h3 className="text-xl font-extrabold text-stone-900 mt-1 truncate">
+                  {item.value}
+                </h3>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Revenue Chart */}
-        <div className="lg:col-span-8 rounded-2xl border border-stone-200 bg-white p-6 shadow-xs relative">
-          <h3 className="text-sm font-bold text-stone-900 mb-6 uppercase tracking-wider">Doanh thu Shop theo thời gian</h3>
-          
-          {chartData.length === 0 ? (
-            <div className="h-60 flex items-center justify-center text-xs text-stone-400">
-              Không có dữ liệu biểu đồ.
-            </div>
-          ) : (
-            <div className="w-full overflow-hidden">
-              <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" height="auto" className="overflow-visible">
-                <defs>
-                  <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#b45309" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#b45309" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-
-                {gridValues.map((val, idx) => {
-                  const y = (svgHeight - paddingBottom) - (val * chartHeight)
-                  const labelVal = Math.round(val * maxRevenue)
-                  return (
-                    <g key={idx} className="opacity-60">
-                      <line
-                        x1={paddingLeft}
-                        y1={y}
-                        x2={svgWidth - paddingRight}
-                        y2={y}
-                        stroke="#f5f5f4"
-                        strokeWidth="1.5"
-                      />
-                      <text
-                        x={paddingLeft - 12}
-                        y={y + 3.5}
-                        textAnchor="end"
-                        className="text-[9px] fill-stone-400 font-bold"
-                      >
-                        {labelVal >= 1000000 
-                          ? `${(labelVal / 1000000).toFixed(1)}M` 
-                          : labelVal >= 1000 
-                            ? `${(labelVal / 1000).toFixed(0)}k` 
-                            : labelVal}đ
-                      </text>
-                    </g>
-                  )
-                })}
-
-                {areaPath && (
-                  <path d={areaPath} fill="url(#chart-gradient)" />
-                )}
-
-                {linePath && (
-                  <path
-                    d={linePath}
-                    fill="none"
-                    stroke="#b45309"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                )}
-
-                {points.map((p, idx) => (
-                  <circle
-                    key={idx}
-                    cx={p.x}
-                    cy={p.y}
-                    r="4"
-                    fill="#ffffff"
-                    stroke="#b45309"
-                    strokeWidth="2.5"
-                  />
-                ))}
-
-                {hoveredIndex !== null && points[hoveredIndex] && (
-                  <g>
-                    <line
-                      x1={points[hoveredIndex].x}
-                      y1={paddingTop - 10}
-                      x2={points[hoveredIndex].x}
-                      y2={svgHeight - paddingBottom}
-                      stroke="#b45309"
-                      strokeWidth="1.5"
-                      strokeDasharray="3 3"
-                      opacity="0.8"
-                    />
-                    <circle
-                      cx={points[hoveredIndex].x}
-                      cy={points[hoveredIndex].y}
-                      r="8"
-                      fill="#b45309"
-                      fillOpacity="0.2"
-                      className="animate-ping"
-                      style={{ transformOrigin: `${points[hoveredIndex].x}px ${points[hoveredIndex].y}px` }}
-                    />
-                    <circle
-                      cx={points[hoveredIndex].x}
-                      cy={points[hoveredIndex].y}
-                      r="6"
-                      fill="#b45309"
-                      stroke="#ffffff"
-                      strokeWidth="2"
-                    />
-
-                    {(() => {
-                      const p = points[hoveredIndex]
-                      const tooltipWidth = 140
-                      const tooltipHeight = 65
-                      const tooltipX = p.x + tooltipWidth + 10 > svgWidth - paddingRight ? p.x - tooltipWidth - 10 : p.x + 10
-                      const tooltipY = Math.max(p.y - tooltipHeight / 2, paddingTop)
-
-                      return (
-                        <g>
-                          <rect
-                            x={tooltipX + 2}
-                            y={tooltipY + 2}
-                            width={tooltipWidth}
-                            height={tooltipHeight}
-                            rx="8"
-                            fill="#000000"
-                            opacity="0.1"
-                          />
-                          <rect
-                            x={tooltipX}
-                            y={tooltipY}
-                            width={tooltipWidth}
-                            height={tooltipHeight}
-                            rx="8"
-                            fill="#1c1917"
-                            stroke="#44403c"
-                            strokeWidth="1"
-                          />
-                          <text x={tooltipX + 12} y={tooltipY + 18} fill="#f59e0b" fontSize="10" fontWeight="extrabold" fontFamily="sans-serif">
-                            {p.data.date || p.data.month}
-                          </text>
-                          <text x={tooltipX + 12} y={tooltipY + 35} fill="#d6d3d1" fontSize="9" fontFamily="sans-serif">
-                            Doanh thu:
-                          </text>
-                          <text x={tooltipX + 62} y={tooltipY + 35} fill="#ffffff" fontSize="9" fontWeight="bold" fontFamily="sans-serif">
-                            {p.data.revenue.toLocaleString('vi-VN')}đ
-                          </text>
-                          <text x={tooltipX + 12} y={tooltipY + 50} fill="#d6d3d1" fontSize="9" fontFamily="sans-serif">
-                            Đơn hàng:
-                          </text>
-                          <text x={tooltipX + 62} y={tooltipY + 50} fill="#ffffff" fontSize="9" fontWeight="bold" fontFamily="sans-serif">
-                            {p.data.orders} đơn
-                          </text>
-                        </g>
-                      )
-                    })()}
-                  </g>
-                )}
-
-                {points.map((p, idx) => (
-                  <text
-                    key={idx}
-                    x={p.x}
-                    y={svgHeight - 15}
-                    textAnchor="middle"
-                    className="text-[9px] fill-stone-400 font-bold"
-                  >
-                    {p.data.date || p.data.month}
-                  </text>
-                ))}
-
-                {points.map((p, idx) => {
-                  const segmentWidth = chartWidth / (chartData.length || 1)
-                  const rectX = p.x - segmentWidth / 2
-                  return (
-                    <rect
-                      key={idx}
-                      x={rectX}
-                      y={paddingTop - 10}
-                      width={segmentWidth}
-                      height={chartHeight + 20}
-                      fill="transparent"
-                      className="cursor-pointer"
-                      onMouseEnter={() => setHoveredIndex(idx)}
-                      onMouseLeave={() => setHoveredIndex(null)}
-                    />
-                  )
-                })}
-              </svg>
-            </div>
-          )}
-        </div>
-
-        {/* Top selling products list */}
-        <div className="lg:col-span-4 rounded-2xl border border-stone-200 bg-white p-6 shadow-xs">
-          <h3 className="text-sm font-bold text-stone-900 mb-6 uppercase tracking-wider">Top sản phẩm của shop</h3>
-          
-          {topProducts.length === 0 ? (
-            <div className="py-12 text-center text-xs text-stone-400">
-              Chưa có dữ liệu sản phẩm bán chạy.
-            </div>
-          ) : (
-            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
-              {topProducts.map((p: any, idx: number) => {
-                const imageUrl = p.image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600'
-                return (
-                  <div key={idx} className="flex items-center gap-3 border-b border-stone-50 pb-3 last:border-b-0 last:pb-0">
-                    <span className="text-xs font-bold text-stone-400 w-5 text-center shrink-0">#{idx + 1}</span>
-                    <img src={imageUrl} alt={p.name} className="h-10 w-10 rounded-lg object-cover bg-stone-50 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-stone-800 truncate">{p.name}</p>
-                      <p className="text-[10px] text-stone-500 mt-0.5">Đã bán: {p.totalSold} chiếc</p>
-                    </div>
-                    <span className="text-xs font-extrabold text-amber-900 shrink-0">
-                      {p.revenue.toLocaleString('vi-VN')}đ
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+      {/* Info Card */}
+      <div className="rounded-2xl border border-amber-200/60 bg-amber-50/30 p-6">
+        <h3 className="text-sm font-bold text-amber-900 mb-2">Chào mừng đến với Kênh Người Bán</h3>
+        <p className="text-xs text-stone-600 leading-relaxed">
+          Tại đây bạn có thể quản lý các sản phẩm của shop mình, cập nhật trạng thái đơn hàng khi có khách hàng đặt mua, 
+          và phát hành các chương trình khuyến mãi (coupon) dành riêng cho các mẫu cốc của shop. Hệ thống sẽ tự động tổng hợp 
+          và hiển thị doanh thu thực nhận của riêng shop bạn sau khi đơn hàng được hoàn tất.
+        </p>
       </div>
     </div>
   )

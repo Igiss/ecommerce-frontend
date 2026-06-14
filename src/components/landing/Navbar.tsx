@@ -6,30 +6,89 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { useCartStore } from '@/store/cart.store'
 import { useWishlistStore } from '@/store/wishlist.store'
-import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, X, Search, Heart, Store } from 'lucide-react'
+import { logoutUser } from '@/lib/api/auth.service'
+import { getMyNotifications, markNotificationRead, markAllNotificationsRead } from '@/lib/api/notification.service'
+import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, X, Search, Heart, Store, Bell } from 'lucide-react'
 
 export function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
-  const { user, logout } = useAuthStore()
+  const { user, clearAuth } = useAuthStore()
   const items = useCartStore((state) => state.items)
   const wishlistItems = useWishlistStore((state) => state.items)
   const wishlistCount = wishlistItems.length
   
   const [mounted, setMounted] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [notiDropdownOpen, setNotiDropdownOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [notifications, setNotifications] = useState<any[]>([])
+
+  const fetchNotifications = () => {
+    if (!user) return
+    getMyNotifications()
+      .then((data: any) => {
+        setNotifications(Array.isArray(data) ? data : [])
+      })
+      .catch((err) => console.error('Failed to load notifications:', err))
+  }
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const handleLogout = () => {
-    logout()
-    setDropdownOpen(false)
-    router.push('/')
+  useEffect(() => {
+    if (user) {
+      fetchNotifications()
+      const interval = setInterval(fetchNotifications, 30000)
+      return () => clearInterval(interval)
+    } else {
+      setNotifications([])
+    }
+  }, [user])
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser()
+    } catch {
+      // Ignore
+    } finally {
+      clearAuth()
+      setDropdownOpen(false)
+      setNotiDropdownOpen(false)
+      router.replace('/')
+      router.refresh()
+    }
   }
+
+  const handleNotificationClick = async (noti: any) => {
+    setNotiDropdownOpen(false)
+    if (!noti.isRead) {
+      try {
+        await markNotificationRead(noti._id)
+        fetchNotifications()
+      } catch (err) {
+        console.error('Failed to mark notification as read:', err)
+      }
+    }
+    if (noti.metadata?.orderId) {
+      router.push(`/orders/${noti.metadata.orderId}`)
+    } else {
+      router.push('/profile?tab=notifications')
+    }
+  }
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead()
+      fetchNotifications()
+    } catch (err) {
+      console.error('Failed to mark all notifications as read:', err)
+    }
+  }
+
+  const unreadCount = notifications.filter(n => !n.isRead).length
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -107,6 +166,84 @@ export function Navbar() {
               </span>
             )}
           </Link>
+
+          {/* Notifications Bell */}
+          {mounted && user && (
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setNotiDropdownOpen(!notiDropdownOpen)
+                  setDropdownOpen(false)
+                  if (!notiDropdownOpen) fetchNotifications()
+                }}
+                className="relative p-2 text-stone-600 hover:text-amber-800 transition-colors focus:outline-none cursor-pointer"
+                aria-label="Thông báo"
+              >
+                <Bell className="h-5.5 w-5.5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white animate-pulse" />
+                )}
+              </button>
+
+              {notiDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-2xl border border-stone-200 bg-white p-2 shadow-xl ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-1 duration-100 max-h-[420px] flex flex-col z-50">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-stone-100 shrink-0">
+                    <span className="text-xs font-bold text-stone-850">Thông báo của bạn ({unreadCount})</span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="text-[10px] font-bold text-amber-800 hover:text-amber-900 transition-colors cursor-pointer"
+                      >
+                        Đọc tất cả
+                      </button>
+                    )}
+                  </div>
+
+                  {/* List */}
+                  <div className="flex-1 overflow-y-auto divide-y divide-stone-100 max-h-[300px]">
+                    {notifications.length === 0 ? (
+                      <div className="py-10 text-center text-xs text-stone-400">Không có thông báo nào</div>
+                    ) : (
+                      notifications.slice(0, 5).map((noti) => (
+                        <div
+                          key={noti._id}
+                          onClick={() => handleNotificationClick(noti)}
+                          className={`p-3 text-left hover:bg-stone-50/70 transition-colors cursor-pointer flex flex-col gap-0.5 ${
+                            !noti.isRead ? 'bg-amber-500/5' : ''
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <span className={`text-[11px] font-bold ${!noti.isRead ? 'text-stone-900 font-extrabold' : 'text-stone-700'}`}>
+                              {noti.title}
+                            </span>
+                            {!noti.isRead && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-600 mt-1 shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[10px] text-stone-500 line-clamp-2 leading-relaxed">{noti.message}</p>
+                          <span className="text-[8px] text-stone-400 mt-1.5">
+                            {new Date(noti.createdAt).toLocaleDateString('vi-VN')} {new Date(noti.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="border-t border-stone-100 pt-2 pb-1 text-center shrink-0">
+                    <Link
+                      href="/profile?tab=notifications"
+                      onClick={() => setNotiDropdownOpen(false)}
+                      className="inline-block text-[11px] font-bold text-amber-800 hover:text-amber-900 transition-colors"
+                    >
+                      Xem tất cả thông báo
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* User Section (Hydration safe) */}
           <div className="relative">

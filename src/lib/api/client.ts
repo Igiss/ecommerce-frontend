@@ -1,11 +1,9 @@
-import { useAuthStore } from '@/store/auth.store'
-
 export class ApiError extends Error {
   status: number
 
   constructor(message: string, status: number) {
     super(message)
-    this.name = 'ApiError'
+    this.name = "ApiError"
     this.status = status
   }
 }
@@ -14,20 +12,16 @@ export async function apiClient<T>(
   path: string,
   init?: RequestInit
 ): Promise<T> {
-  const token = useAuthStore.getState().token
-
   const headers = new Headers(init?.headers)
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`)
-  }
 
-  if (!headers.has('Content-Type') && !(init?.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json')
+  if (!headers.has("Content-Type") && !(init?.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json")
   }
 
   const response = await fetch(`/api${path}`, {
     ...init,
-    headers
+    headers,
+    credentials: "include",
   })
 
   if (!response.ok) {
