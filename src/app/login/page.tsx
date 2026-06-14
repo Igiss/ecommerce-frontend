@@ -9,7 +9,7 @@ import { Coffee, Eye, EyeOff, AlertCircle } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { user, setAuth } = useAuthStore()
+  const { user, setUser } = useAuthStore()
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -31,8 +31,9 @@ export default function LoginPage() {
 
     try {
       const data = await loginUser({ email, password })
-      setAuth(data.user || data, data.accessToken || data.token)
-      router.push('/')
+      setUser(data.user || data)
+      router.replace('/')
+      router.refresh()
     } catch (err: any) {
       setError(err.message || 'Email hoặc mật khẩu không đúng')
     } finally {

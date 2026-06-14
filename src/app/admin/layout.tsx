@@ -3,8 +3,9 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
+import { logoutUser } from '@/lib/api/auth.service'
 import Link from 'next/link'
-import { LayoutDashboard, ShoppingCart, Calendar, Ticket, ArrowLeft, Loader2, LogOut, Shield, Users } from 'lucide-react'
+import { LayoutDashboard, ShoppingCart, Calendar, Ticket, ArrowLeft, Loader2, LogOut, Shield, Users, FolderOpen } from 'lucide-react'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -13,17 +14,20 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const { user, logout } = useAuthStore()
+  const { user, initialized, clearAuth } = useAuthStore()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    if (mounted && (!user || !user.isAdmin)) {
+  }, [])
+
+  useEffect(() => {
+    if (mounted && initialized && (!user || !user.isAdmin)) {
       router.push('/')
     }
-  }, [user, mounted, router])
+  }, [user, initialized, mounted, router])
 
-  if (!mounted) {
+  if (!mounted || !initialized) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-stone-50">
         <div className="text-center">
@@ -52,7 +56,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const sidebarLinks = [
     { href: '/admin/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
-    { href: '/admin/users', label: 'Duyệt chủ shop', icon: Users }
+    { href: '/admin/users', label: 'Duyệt chủ shop', icon: Users },
+    { href: '/admin/categories', label: 'Danh mục sản phẩm', icon: FolderOpen }
   ]
 
   return (
@@ -100,9 +105,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             Về Cửa hàng
           </Link>
           <button
-            onClick={() => {
-              logout()
-              router.push('/')
+            onClick={async () => {
+              try {
+                await logoutUser()
+              } catch {
+                // Ignore
+              } finally {
+                clearAuth()
+                router.replace('/')
+                router.refresh()
+              }
             }}
             className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-900/10 hover:text-red-300 transition-colors"
           >

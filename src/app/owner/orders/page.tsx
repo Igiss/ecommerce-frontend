@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getAdminOrders, updateOrderStatus, deliverOrder } from '@/lib/api/admin.service'
-import { getProducts } from '@/lib/api/products.service'
+import { getOwnerOrders, updateOwnerOrderStatus, getOwnerProducts } from '@/lib/api/owner.service'
 import { useAuthStore } from '@/store/auth.store'
 import { Calendar, Eye, X, AlertCircle, Paintbrush } from 'lucide-react'
 
@@ -43,8 +42,8 @@ export default function OwnerOrdersPage() {
     if (!user?.id) return
     setLoading(true)
     try {
-      // 1. Fetch all products to identify which ones belong to this owner
-      const productsData = (await getProducts()) as any
+      // 1. Fetch owner products to identify which ones belong to this owner
+      const productsData = (await getOwnerProducts()) as any
       let allProducts: any[] = []
       if (Array.isArray(productsData)) {
         allProducts = productsData
@@ -56,22 +55,12 @@ export default function OwnerOrdersPage() {
         }
       }
 
-      const ownerProducts = allProducts.filter((product: any) => {
-        const creatorId = product.createdBy?.id || product.createdBy?._id || product.createdBy
-        return creatorId === user.id
-      })
-
-      const ownerIds = new Set<string>(ownerProducts.map((p: any) => p.id || p._id || '').filter(Boolean))
+      const ownerIds = new Set<string>(allProducts.map((p: any) => p.id || p._id || '').filter(Boolean))
       setOwnerProductIds(ownerIds)
 
-      // 2. Fetch all orders
-      const ordersData = await getAdminOrders()
-      let allOrdersList: any[] = []
-      if (Array.isArray(ordersData)) {
-        allOrdersList = ordersData
-      } else if (ordersData && typeof ordersData === 'object' && 'orders' in ordersData && Array.isArray(ordersData.orders)) {
-        allOrdersList = ordersData.orders
-      }
+      // 2. Fetch owner orders
+      const ordersData = await getOwnerOrders()
+      const allOrdersList = Array.isArray(ordersData) ? ordersData : []
 
       // 3. Normalize orders and filter down to those containing owner's products
       const normalized = allOrdersList.map((order: any) => {
@@ -82,15 +71,17 @@ export default function OwnerOrdersPage() {
 
         // Calculate total amount for ONLY the owner's items in this order
         const ownerItems = orderItems.filter((item: any) => {
-          const pId = item.productId?.id || item.productId?._id || item.productId
-          return pId && ownerIds.has(pId)
+          const itemOwnerId = item.ownerId?.id || item.ownerId?._id || item.ownerId
+          return itemOwnerId && String(itemOwnerId) === String(user?.id)
         })
 
         const ownerSubtotal = ownerItems.reduce((sum: number, item: any) => sum + (item.price * item.qty), 0)
 
+        const rawStatus = ownerItems[0]?.fulfillmentStatus || order.orderStatus || order.status
+
         return {
           ...order,
-          status: mapBackendStatusToFrontend(order.orderStatus || order.status),
+          status: mapBackendStatusToFrontend(rawStatus),
           totalPrice: order.totalAmount || order.totalPrice || 0,
           ownerSubtotal, // Total value of owner's goods in this order
           orderItems,
@@ -98,18 +89,10 @@ export default function OwnerOrdersPage() {
         }
       })
 
-      // Only show orders containing at least one product from this owner
-      const filteredByOwner = normalized.filter((order: any) => {
-        return order.orderItems.some((item: any) => {
-          const pId = item.productId?.id || item.productId?._id || item.productId
-          return pId && ownerIds.has(pId)
-        })
-      })
-
       if (statusFilter === 'all') {
-        setOrders(filteredByOwner)
+        setOrders(normalized)
       } else {
-        setOrders(filteredByOwner.filter((order: any) => order.status === statusFilter))
+        setOrders(normalized.filter((order: any) => order.status === statusFilter))
       }
     } catch (err) {
       console.error(err)
@@ -123,15 +106,21 @@ export default function OwnerOrdersPage() {
     fetchOrdersList()
   }, [user, statusFilter])
 
+  const mapFrontendStatusToBackend = (status: string): string => {
+    switch (status) {
+      case 'processing': return 'confirmed'
+      case 'shipped': return 'shipping'
+      case 'delivered': return 'completed'
+      default: return status
+    }
+  }
+
   // Change status of order
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setStatusUpdateLoading(true)
     try {
-      if (newStatus === 'delivered') {
-        await deliverOrder(orderId)
-      } else {
-        await updateOrderStatus(orderId, newStatus)
-      }
+      const backendStatus = mapFrontendStatusToBackend(newStatus)
+      await updateOwnerOrderStatus(orderId, backendStatus)
       
       // Update modal order instance if open
       if (selectedOrder && (selectedOrder._id === orderId || selectedOrder.id === orderId)) {
@@ -358,8 +347,8 @@ export default function OwnerOrdersPage() {
                 <div className="divide-y divide-stone-100 border border-stone-150 rounded-xl p-4 bg-white">
                   {selectedOrder.orderItems
                     ?.filter((item: any) => {
-                      const pId = item.productId?.id || item.productId?._id || item.productId
-                      return pId && ownerProductIds.has(pId)
+                      const itemOwnerId = item.ownerId?.id || item.ownerId?._id || item.ownerId
+                      return itemOwnerId && String(itemOwnerId) === String(user?.id)
                     })
                     .map((item: any, idx: number) => {
                       const imageUrl = item.image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300'

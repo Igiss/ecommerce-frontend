@@ -40,3 +40,9 @@ export function registerOwner(body: any) {
     body: JSON.stringify(body)
   })
 }
+
+export function logoutUser() {
+  return apiClient<{ message: string }>('/auth/logout', {
+    method: 'POST'
+  })
+}

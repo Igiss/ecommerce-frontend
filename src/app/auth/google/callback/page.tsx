@@ -6,31 +6,33 @@ import { useAuthStore } from '@/store/auth.store'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
+import { getUserProfile } from '@/lib/api/auth.service'
+
 function GoogleCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const setAuth = useAuthStore((state) => state.setAuth)
+  const setUser = useAuthStore((state) => state.setUser)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const token = searchParams.get('token')
-    const userStr = searchParams.get('user')
+    async function completeGoogleLogin() {
+      if (searchParams.get('success') !== 'true') {
+        setError('Đăng nhập Google không thành công.')
+        return
+      }
 
-    if (!token || !userStr) {
-      setError('Thông tin đăng nhập không hợp lệ hoặc thiếu dữ liệu từ Google.')
-      return
+      try {
+        const user = await getUserProfile()
+        setUser(user)
+        router.replace('/')
+        router.refresh()
+      } catch (err: any) {
+        setError('Không thể xác nhận phiên đăng nhập Google.')
+      }
     }
 
-    try {
-      const user = JSON.parse(userStr)
-      setAuth(user, token)
-      
-      // Successfully authenticated, redirect to homepage
-      router.push('/')
-    } catch (err) {
-      setError('Lỗi phân tích dữ liệu người dùng Google.')
-    }
-  }, [searchParams, setAuth, router])
+    void completeGoogleLogin()
+  }, [searchParams, router, setUser])
 
   if (error) {
     return (

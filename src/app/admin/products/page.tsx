@@ -21,9 +21,9 @@ export default function AdminProductsPage() {
   // Form Fields
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [price, setPrice] = useState(0)
+  const [price, setPrice] = useState<number | string>('')
   const [category, setCategory] = useState('')
-  const [countInStock, setCountInStock] = useState(0)
+  const [countInStock, setCountInStock] = useState<number | string>('')
   const [modelUrl, setModelUrl] = useState('')
   const [imageFiles, setImageFiles] = useState<FileList | null>(null)
   
@@ -85,9 +85,9 @@ export default function AdminProductsPage() {
     setEditingProduct(null)
     setName('')
     setDescription('')
-    setPrice(0)
+    setPrice('')
     setCategory(categoriesList[0]?.id || categoriesList[0]?._id || '')
-    setCountInStock(10)
+    setCountInStock('')
     setModelUrl('')
     setImageFiles(null)
     setImageUrl('')
@@ -128,8 +128,17 @@ export default function AdminProductsPage() {
     setFormError('')
     setFormLoading(true)
 
-    if (price <= 0 || countInStock < 0) {
-      setFormError('Giá bán và số lượng trong kho không hợp lệ.')
+    const parsedPrice = Number(price)
+    const parsedStock = Number(countInStock)
+
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      setFormError('Đơn giá phải lớn hơn 0.')
+      setFormLoading(false)
+      return
+    }
+
+    if (isNaN(parsedStock) || parsedStock < 0) {
+      setFormError('Số lượng trong kho không được nhỏ hơn 0.')
       setFormLoading(false)
       return
     }
@@ -167,8 +176,8 @@ export default function AdminProductsPage() {
       const payload = {
         name,
         description,
-        price,
-        stock: countInStock,
+        price: parsedPrice,
+        stock: parsedStock,
         categoryId: category,
         modelUrl: modelUrl || undefined,
         images: finalImages
@@ -348,9 +357,9 @@ export default function AdminProductsPage() {
                   <input
                     type="number"
                     required
-                    min="0"
+                    min="1"
                     value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
+                    onChange={(e) => setPrice(e.target.value)}
                     className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
                   />
                 </div>
@@ -361,7 +370,7 @@ export default function AdminProductsPage() {
                     required
                     min="0"
                     value={countInStock}
-                    onChange={(e) => setCountInStock(Number(e.target.value))}
+                    onChange={(e) => setCountInStock(e.target.value)}
                     className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
                   />
                 </div>

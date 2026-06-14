@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth.store'
 import { useCartStore } from '@/store/cart.store'
 import { createOrder, createVNPayUrl } from '@/lib/api/orders.service'
 import { validateCoupon } from '@/lib/api/coupons.service'
+import { getAddresses } from '@/lib/api/address.service'
 import { AlertCircle, Ticket, CreditCard, Truck, User, MapPin, Phone, ShieldCheck } from 'lucide-react'
 
 export default function CheckoutPage() {
@@ -21,11 +22,16 @@ export default function CheckoutPage() {
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
-  const [city, setCity] = useState('')
+  const [ward, setWard] = useState('')
+  const [province, setProvince] = useState('')
   const [postalCode, setPostalCode] = useState('70000')
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'VNPay'>('COD')
   const [isSuccess, setIsSuccess] = useState(false)
   const [newOrderId, setNewOrderId] = useState('')
+
+  // Saved addresses
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([])
+  const [selectedAddrId, setSelectedAddrId] = useState<string>('manual')
 
   // Coupon State
   const [couponCode, setCouponCode] = useState('')
@@ -40,9 +46,55 @@ export default function CheckoutPage() {
     if (!user) {
       router.push('/login?redirect=/checkout')
     } else {
-      setFullName(user.name)
+      setFullName(user.name || '')
     }
   }, [user, router])
+
+  useEffect(() => {
+    if (user) {
+      getAddresses()
+        .then((data: any) => {
+          if (Array.isArray(data)) {
+            setSavedAddresses(data)
+            const defAddr = data.find((a: any) => a.isDefault)
+            if (defAddr) {
+              setSelectedAddrId(String(defAddr.addressId))
+              setFullName(defAddr.fullName)
+              setPhone(defAddr.phone)
+              setAddress(defAddr.addressLine)
+              setWard(defAddr.ward)
+              setProvince(defAddr.province)
+              if (defAddr.postalCode) setPostalCode(defAddr.postalCode)
+            }
+          }
+        })
+        .catch((err) => console.error('Failed to load saved addresses:', err))
+    }
+  }, [user])
+
+  const handleAddressChange = (addrId: string) => {
+    setSelectedAddrId(addrId)
+    if (addrId === 'manual') {
+      setFullName(user?.name || '')
+      setPhone('')
+      setAddress('')
+      setWard('')
+      setProvince('')
+      setPostalCode('70000')
+    } else {
+      const selected = savedAddresses.find((a: any) => String(a.addressId) === addrId)
+      if (selected) {
+        setFullName(selected.fullName)
+        setPhone(selected.phone)
+        setAddress(selected.addressLine)
+        setWard(selected.ward)
+        setProvince(selected.province)
+        if (selected.postalCode) {
+          setPostalCode(selected.postalCode)
+        }
+      }
+    }
+  }
 
   if (!mounted) {
     return (
@@ -168,8 +220,8 @@ export default function CheckoutPage() {
     setError('')
     setLoading(true)
 
-    if (!fullName.trim() || !phone.trim() || !address.trim() || !city.trim()) {
-      setError('Vui lòng nhập đầy đủ thông tin giao nhận hàng.')
+    if (!fullName.trim() || !phone.trim() || !address.trim() || !ward.trim() || !province.trim()) {
+      setError('Vui lòng nhập đầy đủ thông tin giao nhận hàng (Họ tên, SĐT, Địa chỉ, Xã/Phường, Tỉnh/Thành phố).')
       setLoading(false)
       return
     }
@@ -180,7 +232,13 @@ export default function CheckoutPage() {
           productId: Number(item.product.id),
           quantity: item.qty
         })),
-        shippingAddress: { fullName, phone, address, city },
+        shippingAddress: { 
+          fullName, 
+          phone, 
+          address, 
+          ward, 
+          province 
+        },
         paymentMethod: paymentMethod === 'VNPay' ? 'VNPAY' : 'COD'
       }
 
@@ -231,6 +289,24 @@ export default function CheckoutPage() {
               Thông tin nhận hàng
             </h2>
 
+            {savedAddresses.length > 0 && (
+              <div className="mb-6 rounded-xl bg-amber-50/25 border border-amber-200/50 p-4">
+                <label className="block text-xs font-bold text-amber-900 uppercase mb-2">Chọn địa chỉ đã lưu</label>
+                <select
+                  value={selectedAddrId}
+                  onChange={(e) => handleAddressChange(e.target.value)}
+                  className="block w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 text-stone-850"
+                >
+                  <option value="manual">Nhập địa chỉ mới (Thủ công)</option>
+                  {savedAddresses.map((addr) => (
+                    <option key={addr.addressId} value={addr.addressId}>
+                      [{addr.label}] {addr.fullName} - {addr.phone} ({addr.addressLine}, {addr.ward}, {addr.province}) {addr.isDefault ? '(Mặc định)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-stone-600 uppercase">Họ và tên người nhận</label>
@@ -279,13 +355,25 @@ export default function CheckoutPage() {
                 />
               </div>
 
-              <div className="sm:col-span-2">
+              <div>
+                <label className="block text-xs font-semibold text-stone-600 uppercase">Quận / Huyện / Xã / Phường</label>
+                <input
+                  type="text"
+                  required
+                  value={ward}
+                  onChange={(e) => setWard(e.target.value)}
+                  placeholder="Quận 1, Phường Bến Nghé"
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                />
+              </div>
+
+              <div>
                 <label className="block text-xs font-semibold text-stone-600 uppercase">Tỉnh / Thành phố</label>
                 <input
                   type="text"
                   required
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  value={province}
+                  onChange={(e) => setProvince(e.target.value)}
                   placeholder="TP. Hồ Chí Minh"
                   className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
                 />
