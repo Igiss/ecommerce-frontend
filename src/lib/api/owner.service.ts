@@ -46,17 +46,6 @@ export function deleteOwnerProduct(id: string | number) {
   })
 }
 
-export function uploadOwnerProductImage(file: File) {
-  const formData = new FormData()
-  formData.append("file", file)
-  return apiClient<any>("/upload", {
-    method: "POST",
-    body: formData,
-    // Headers must NOT be set to JSON for multipart/form-data.
-    // apiClient will bypass setting content-type since body is FormData.
-  })
-}
-
 // Coupons
 export function getOwnerCoupons() {
   return apiClient<any[]>("/owner/coupons")

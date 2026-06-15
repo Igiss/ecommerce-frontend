@@ -21,6 +21,13 @@ export function getOrderById(id: string) {
   })
 }
 
+export function cancelOrder(id: string, cancelReason?: string) {
+  return apiClient<any>(`/orders/${id}/cancel`, {
+    method: 'PATCH',
+    body: JSON.stringify({ cancelReason })
+  })
+}
+
 export function createVNPayUrl(orderId: string) {
   return apiClient<{ paymentUrl: string }>(`/payments/vnpay/${orderId}/url`, {
     method: 'POST'

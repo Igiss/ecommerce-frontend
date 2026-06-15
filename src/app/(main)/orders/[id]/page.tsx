@@ -3,8 +3,8 @@
 import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
-import { getOrderById, createVNPayUrl } from '@/lib/api/orders.service'
-import { AlertCircle, Paintbrush, Calendar, MapPin, CreditCard, ChevronLeft, CreditCard as CardIcon } from 'lucide-react'
+import { getOrderById, createVNPayUrl, cancelOrder } from '@/lib/api/orders.service'
+import { AlertCircle, Calendar, MapPin, CreditCard, ChevronLeft, CreditCard as CardIcon, XCircle } from 'lucide-react'
 import Link from 'next/link'
 
 interface OrderDetailPageProps {
@@ -21,6 +21,51 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const [order, setOrder] = useState<any>(null)
   const [error, setError] = useState('')
   const [payLoading, setPayLoading] = useState(false)
+  const [cancelLoading, setCancelLoading] = useState(false)
+
+  const normalizeOrder = (data: any) => {
+    const mapBackendStatusToFrontend = (status: string): string => {
+      switch (status) {
+        case 'confirmed': return 'processing'
+        case 'shipping': return 'shipped'
+        case 'completed': return 'delivered'
+        default: return status
+      }
+    }
+    const orderItems = (data.items || data.orderItems || []).map((item: any) => ({
+      ...item,
+      name: item.productName || item.name || 'Sản phẩm',
+      qty: item.quantity || item.qty || 1,
+      lineTotal: Number(item.total ?? item.price * (item.quantity || item.qty || 1))
+    }))
+
+    return {
+      ...data,
+      id: data.id || data._id,
+      status: mapBackendStatusToFrontend(data.orderStatus || data.status),
+      isPaid: data.paymentStatus === 'paid' || data.isPaid || false,
+      orderItems,
+      totalPrice: Number(data.totalAmount ?? data.totalPrice ?? 0),
+      itemsPrice: Number(
+        data.subtotal ??
+        orderItems.reduce((sum: number, item: any) => sum + item.lineTotal, 0)
+      ),
+      shippingPrice: Number(data.shippingFee ?? 0),
+      discountAmount: Number(data.discountAmount ?? 0)
+    }
+  }
+
+  const loadOrder = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      setOrder(normalizeOrder(await getOrderById(id)))
+    } catch (err: any) {
+      setError(err.message || 'Không thể lấy thông tin chi tiết đơn hàng.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -28,42 +73,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
       router.push(`/login?redirect=/orders/${id}`)
       return
     }
-
-    getOrderById(id)
-      .then((data: any) => {
-        const mapBackendStatusToFrontend = (status: string): string => {
-          switch (status) {
-            case 'confirmed': return 'processing'
-            case 'shipping': return 'shipped'
-            case 'completed': return 'delivered'
-            default: return status
-          }
-        }
-
-        const itemsPrice = (data.items || data.orderItems || []).reduce((sum: number, item: any) => sum + (item.price * (item.quantity || item.qty || 0)), 0)
-        const totalPrice = data.totalAmount || data.totalPrice || 0
-        const shippingPrice = totalPrice > 500000 ? 0 : 30000
-        const discountAmount = Math.max(itemsPrice + shippingPrice - totalPrice, 0)
-
-        const normalized = {
-          ...data,
-          status: mapBackendStatusToFrontend(data.orderStatus || data.status),
-          isPaid: data.paymentStatus === 'paid' || data.isPaid || false,
-          orderItems: (data.items || data.orderItems || []).map((item: any) => ({
-            ...item,
-            qty: item.quantity || item.qty || 1
-          })),
-          totalPrice,
-          itemsPrice,
-          shippingPrice,
-          discountAmount
-        }
-        setOrder(normalized)
-      })
-      .catch((err: any) => {
-        setError(err.message || 'Không thể lấy thông tin chi tiết đơn hàng.')
-      })
-      .finally(() => setLoading(false))
+    void loadOrder()
   }, [id, user, router])
 
   if (!mounted || loading) {
@@ -96,7 +106,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
     setPayLoading(true)
     setError('')
     try {
-      const vnpayRes = await createVNPayUrl(order._id || order.id)
+      const vnpayRes = await createVNPayUrl(order.id)
       if (vnpayRes && vnpayRes.paymentUrl) {
         window.location.href = vnpayRes.paymentUrl
       } else {
@@ -106,6 +116,21 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
       setError(err.message || 'Lỗi thanh toán VNPay.')
     } finally {
       setPayLoading(false)
+    }
+  }
+
+  const handleCancelOrder = async () => {
+    const reason = window.prompt('Lý do hủy đơn hàng (không bắt buộc):') || undefined
+    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) return
+
+    setCancelLoading(true)
+    setError('')
+    try {
+      setOrder(normalizeOrder(await cancelOrder(order.id, reason)))
+    } catch (err: any) {
+      setError(err.message || 'Không thể hủy đơn hàng.')
+    } finally {
+      setCancelLoading(false)
     }
   }
 
@@ -156,6 +181,17 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             <span>Ngày mua: {new Date(order.createdAt).toLocaleDateString('vi-VN')}</span>
           </div>
         </div>
+        {order.status === 'pending' && (
+          <button
+            type="button"
+            onClick={handleCancelOrder}
+            disabled={cancelLoading}
+            className="mt-5 inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50 disabled:opacity-60"
+          >
+            <XCircle className="h-4 w-4" />
+            {cancelLoading ? 'Đang hủy...' : 'Hủy đơn hàng'}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
@@ -169,7 +205,13 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             <p className="font-bold text-stone-900">{order.shippingAddress.fullName}</p>
             <p className="flex items-center gap-2">SĐT: {order.shippingAddress.phone}</p>
             <p>{order.shippingAddress.address}</p>
-            <p>{order.shippingAddress.city}</p>
+            <p>{order.shippingAddress.ward}, {order.shippingAddress.province}</p>
+            {order.shippingProvider && (
+              <p>Đơn vị vận chuyển: <strong>{order.shippingProvider}</strong></p>
+            )}
+            {order.trackingCode && (
+              <p>Mã vận đơn: <strong className="select-all">{order.trackingCode}</strong></p>
+            )}
           </div>
         </div>
 
@@ -183,7 +225,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             <div>
               <span className="text-xs text-stone-400 font-semibold uppercase">Hình thức</span>
               <p className="font-bold text-stone-900 mt-0.5">
-                {order.paymentMethod === 'VNPay' ? 'Thanh toán trực tuyến VNPay' : 'Thanh toán tiền mặt khi giao hàng (COD)'}
+                {order.paymentMethod === 'VNPAY' ? 'Thanh toán trực tuyến VNPay' : 'Thanh toán khi nhận hàng (COD)'}
               </p>
             </div>
             <div>
@@ -191,14 +233,17 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
               <p className="mt-0.5 flex items-center gap-2">
                 {order.isPaid ? (
                   <span className="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-800">
-                    Đã thanh toán ({new Date(order.paidAt).toLocaleDateString('vi-VN')})
+                    Đã thanh toán
+                    {order.paidAt
+                      ? ` (${new Date(order.paidAt).toLocaleString('vi-VN')})`
+                      : ''}
                   </span>
                 ) : (
                   <>
                     <span className="inline-flex rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-800">
                       Chưa thanh toán
                     </span>
-                    {order.paymentMethod === 'VNPay' && order.status !== 'cancelled' && (
+                    {order.paymentMethod === 'VNPAY' && order.status !== 'cancelled' && (
                       <button
                         onClick={handleVNPayRepay}
                         disabled={payLoading}
@@ -231,31 +276,12 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                     <h3 className="text-sm font-bold text-stone-900">{item.name}</h3>
                     <p className="text-xs text-stone-500 mt-1">Đơn giá: {item.price.toLocaleString('vi-VN')}đ | Số lượng: {item.qty}</p>
                     
-                    {/* Customization Details */}
-                    {item.customization && (
-                      <div className="mt-2 flex flex-wrap gap-2.5 items-center bg-amber-50/50 rounded-lg p-2 text-[10px] text-amber-900/80 font-medium">
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Paintbrush className="h-3 w-3 text-amber-600" />
-                          <span>Màu cốc:</span>
-                          <span
-                            className="h-3 w-3 rounded-full border border-stone-300"
-                            style={{ backgroundColor: item.customization.baseColor }}
-                          />
-                        </div>
-                        {item.customization.designName && (
-                          <div className="shrink-0">
-                            <span>Artwork: </span>
-                            <span className="font-semibold text-stone-700">{item.customization.designName}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
 
                 <div className="text-right shrink-0">
                   <span className="text-sm font-extrabold text-stone-900">
-                    {(item.price * item.qty).toLocaleString('vi-VN')}đ
+                    {item.lineTotal.toLocaleString('vi-VN')}đ
                   </span>
                 </div>
               </div>
@@ -274,12 +300,22 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             <span className="font-semibold text-stone-900">{order.itemsPrice.toLocaleString('vi-VN')}đ</span>
           </div>
           <div className="flex justify-between">
-            <span>Phí vận chuyển</span>
-            <span>{order.shippingPrice === 0 ? 'Miễn phí' : `${order.shippingPrice.toLocaleString('vi-VN')}đ`}</span>
+            <span>Phí giao hàng</span>
+            <span>
+              {order.shippingPrice === 0
+                ? 'Miễn phí'
+                : `${order.shippingPrice.toLocaleString('vi-VN')}đ`}
+            </span>
           </div>
-          {order.discountAmount > 0 && (
-            <div className="flex justify-between text-green-700 font-medium">
+          {order.couponCode && (
+            <div className="flex justify-between">
               <span>Mã giảm giá</span>
+              <span className="font-semibold text-stone-900">{order.couponCode}</span>
+            </div>
+          )}
+          {order.discountAmount > 0 && (
+            <div className="flex justify-between text-green-700">
+              <span>Giảm giá</span>
               <span>-{order.discountAmount.toLocaleString('vi-VN')}đ</span>
             </div>
           )}

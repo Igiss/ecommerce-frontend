@@ -7,7 +7,7 @@ import { useCartStore } from '@/store/cart.store'
 import { createOrder, createVNPayUrl } from '@/lib/api/orders.service'
 import { validateCoupon } from '@/lib/api/coupons.service'
 import { getAddresses } from '@/lib/api/address.service'
-import { AlertCircle, Ticket, CreditCard, Truck, User, MapPin, Phone, ShieldCheck } from 'lucide-react'
+import { AlertCircle, Ticket, CreditCard, MapPin, ShieldCheck } from 'lucide-react'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -168,48 +168,16 @@ export default function CheckoutPage() {
 
     setCouponLoading(true)
 
-    // Build unique list of vendor prefixes for products in the cart
-    const vendorPrefixes = new Set<string>()
-    items.forEach((item) => {
-      const creatorId = (item.product as any).createdBy?.id || (item.product as any).createdBy?._id || (item.product as any).createdBy
-      if (creatorId) {
-        vendorPrefixes.add(`C_${creatorId.substring(0, 5).toUpperCase()}_`)
-      }
-    })
-
-    // Prepare list of codes to try: first the raw code, then prepended with vendor prefixes
-    const codesToTry = [rawCode]
-    vendorPrefixes.forEach((prefix) => {
-      if (!rawCode.startsWith(prefix)) {
-        codesToTry.push(`${prefix}${rawCode}`)
-      }
-    })
-
-    let lastError: any = null
-    let successResult: any = null
-
-    for (const codeToValidate of codesToTry) {
-      try {
-        const result = await validateCoupon(codeToValidate, itemsPrice)
-        successResult = { result, codeToValidate }
-        break // Coupon is valid!
-      } catch (err: any) {
-        lastError = err
-      }
-    }
-
-    if (successResult) {
-      const { result, codeToValidate } = successResult
-      const matchedPrefix = Array.from(vendorPrefixes).find(p => codeToValidate.startsWith(p))
-      const cleanCode = matchedPrefix ? codeToValidate.replace(matchedPrefix, '') : codeToValidate
-
+    try {
+      const result = await validateCoupon(rawCode, itemsPrice)
       setAppliedCoupon({
         ...(result.coupon || result),
-        code: cleanCode
+        code: rawCode
       })
+      setCouponCode(rawCode)
       setDiscountAmount(result.actualDiscount || result.discountAmount || 0)
-    } else {
-      setCouponError(lastError?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.')
+    } catch (err: any) {
+      setCouponError(err?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.')
     }
     setCouponLoading(false)
   }
@@ -239,7 +207,8 @@ export default function CheckoutPage() {
           ward, 
           province 
         },
-        paymentMethod: paymentMethod === 'VNPay' ? 'VNPAY' : 'COD'
+        paymentMethod: paymentMethod === 'VNPay' ? 'VNPAY' : 'COD',
+        couponCode: appliedCoupon?.code
       }
 
       const createdOrder = await createOrder(orderData)
@@ -459,7 +428,7 @@ export default function CheckoutPage() {
             <form onSubmit={handleApplyCoupon} className="flex gap-2">
               <input
                 type="text"
-                placeholder="WELCOME10, VIP20..."
+                placeholder="C_12345_SALE10"
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value)}
                 disabled={couponLoading || appliedCoupon}

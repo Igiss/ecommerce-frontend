@@ -182,15 +182,6 @@ export function updateProduct(id: string | number, body: any) {
   })
 }
 
-export function uploadProductImage(file: File) {
-  const formData = new FormData()
-  formData.append('file', file)
-  return apiClient<{ url: string }>('/upload/product-image', {
-    method: 'POST',
-    body: formData
-  })
-}
-
 export function deleteProduct(id: string) {
   return apiClient<any>(`/products/${id}`, {
     method: 'DELETE'

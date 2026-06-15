@@ -5,9 +5,9 @@ import {
   getOwnerProducts,
   createOwnerProduct,
   updateOwnerProduct,
-  deleteOwnerProduct,
-  uploadOwnerProductImage
+  deleteOwnerProduct
 } from '@/lib/api/owner.service'
+import { uploadProductImages } from '@/lib/api/upload.service'
 import { useAuthStore } from '@/store/auth.store'
 import type { Product } from '@/types/product'
 import { Plus, Edit2, Trash2, X, Upload, AlertCircle, Sparkles } from 'lucide-react'
@@ -32,9 +32,8 @@ export default function OwnerProductsPage() {
   const [modelUrl, setModelUrl] = useState('')
   const [imageFiles, setImageFiles] = useState<FileList | null>(null)
   
-  // Dynamic categories list & image link URL
+  // Dynamic categories list
   const [categoriesList, setCategoriesList] = useState<any[]>([])
-  const [imageUrl, setImageUrl] = useState('')
 
   const [formError, setFormError] = useState('')
   const [formLoading, setFormLoading] = useState(false)
@@ -98,7 +97,6 @@ export default function OwnerProductsPage() {
     setCountInStock('')
     setModelUrl('')
     setImageFiles(null)
-    setImageUrl('')
     setFormError('')
     setIsOpen(true)
   }
@@ -114,7 +112,6 @@ export default function OwnerProductsPage() {
     setCountInStock(product.stock ?? product.countInStock ?? 0)
     setModelUrl(product.modelUrl || '')
     setImageFiles(null)
-    setImageUrl(product.images?.[0] || '')
     setFormError('')
     setIsOpen(true)
   }
@@ -158,29 +155,10 @@ export default function OwnerProductsPage() {
     }
 
     try {
-      const uploadedImageUrls: string[] = []
+      const completedUploads = imageFiles?.length
+        ? await uploadProductImages(Array.from(imageFiles))
+        : []
 
-      // 1. Upload local files if any
-      if (imageFiles && imageFiles.length > 0) {
-        for (let i = 0; i < imageFiles.length; i++) {
-          const res = await uploadOwnerProductImage(imageFiles[i])
-          if (res && res.url) {
-            uploadedImageUrls.push(res.url)
-          }
-        }
-      }
-
-      // 2. Add pasted link URL if any
-      if (imageUrl.trim()) {
-        uploadedImageUrls.push(imageUrl.trim())
-      }
-
-      // If no new images provided and editing, keep old images
-      const finalImages = uploadedImageUrls.length > 0 
-        ? uploadedImageUrls 
-        : editingProduct?.images || []
-
-      // 3. Construct JSON Payload
       const payload = {
         name,
         description,
@@ -188,7 +166,9 @@ export default function OwnerProductsPage() {
         stock: parsedStock,
         categoryId: category,
         modelUrl: modelUrl || undefined,
-        images: finalImages
+        ...(completedUploads.length
+          ? { imageUploadIds: completedUploads.map((upload) => upload.id) }
+          : {})
       }
 
       if (editingProduct) {
@@ -411,18 +391,7 @@ export default function OwnerProductsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-stone-555 uppercase">Đường dẫn ảnh sản phẩm (Link URL)</label>
-                  <input
-                    type="text"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="Dán link ảnh từ Google..."
-                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
-                  />
-                </div>
-                <div>
+              <div>
                   <label className="block text-xs font-semibold text-stone-555 uppercase">Tải lên file ảnh từ máy</label>
                   <div className="mt-1.5 border-2 border-dashed border-stone-300 rounded-lg p-2.5 text-center hover:border-amber-600 transition-colors cursor-pointer relative bg-stone-50/50">
                     <input
@@ -435,7 +404,6 @@ export default function OwnerProductsPage() {
                     <Upload className="h-5 w-5 text-stone-400 mx-auto mb-1" />
                     <p className="text-[11px] text-stone-600 font-bold">Kéo thả hoặc click chọn file</p>
                   </div>
-                </div>
               </div>
               {imageFiles && imageFiles.length > 0 && (
                 <p className="text-xs text-green-700 font-bold mt-2">

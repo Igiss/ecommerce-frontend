@@ -7,7 +7,7 @@ import { updateUserProfile, changePassword } from '@/lib/api/auth.service'
 import { getMyOrders } from '@/lib/api/orders.service'
 import { getAddresses, createAddress, updateAddress, setDefaultAddress, deleteAddress, type UserAddress } from '@/lib/api/address.service'
 import { getMyNotifications, markNotificationRead, markAllNotificationsRead, type UserNotification } from '@/lib/api/notification.service'
-import { apiClient } from '@/lib/api/client'
+import { uploadImage } from '@/lib/api/upload.service'
 import { User, ShoppingBag, Eye, Lock, Mail, AlertCircle, CheckCircle, MapPin, Bell, Trash2, Edit2, Plus, Calendar, X } from 'lucide-react'
 import Link from 'next/link'
 
@@ -23,6 +23,7 @@ export default function ProfilePage() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarUploadId, setAvatarUploadId] = useState<string | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [oldPassword, setOldPassword] = useState('')
   const [password, setPassword] = useState('')
@@ -33,6 +34,7 @@ export default function ProfilePage() {
   // Orders State
   const [ordersLoading, setOrdersLoading] = useState(true)
   const [orders, setOrders] = useState<any[]>([])
+  const [ordersError, setOrdersError] = useState('')
 
   // Addresses State
   const [addresses, setAddresses] = useState<UserAddress[]>([])
@@ -74,6 +76,7 @@ export default function ProfilePage() {
     setName(user.fullName || user.name || '')
     setPhone(user.phone || '')
     setAvatarUrl(user.avatar || '')
+    setAvatarUploadId(null)
 
     // Load active tab data
     if (activeTab === 'orders') {
@@ -97,6 +100,7 @@ export default function ProfilePage() {
   // Fetch functions
   const fetchOrdersList = () => {
     setOrdersLoading(true)
+    setOrdersError('')
     getMyOrders()
       .then((data: any) => {
         let list: any[] = []
@@ -115,7 +119,10 @@ export default function ProfilePage() {
         }))
         setOrders(normalized)
       })
-      .catch(() => {})
+      .catch((err) => {
+        setOrders([])
+        setOrdersError(err.message || 'Không thể tải lịch sử đơn hàng.')
+      })
       .finally(() => setOrdersLoading(false))
   }
 
@@ -154,18 +161,11 @@ export default function ProfilePage() {
     setProfileError('')
     setProfileSuccess('')
 
-    const formData = new FormData()
-    formData.append('file', file)
-
     try {
-      const res = await apiClient<any>('/upload/avatar', {
-        method: 'POST',
-        body: formData
-      })
-      if (res && res.url) {
-        setAvatarUrl(res.url)
-        setProfileSuccess('Tải ảnh đại diện lên thành công! Nhấn "Lưu thay đổi" để cập nhật.')
-      }
+      const upload = await uploadImage(file, 'avatar')
+      setAvatarUploadId(upload.id)
+      setAvatarUrl(upload.url)
+      setProfileSuccess('Tải ảnh đại diện lên thành công! Nhấn "Lưu thay đổi" để cập nhật.')
     } catch (err: any) {
       setProfileError(err.message || 'Lỗi tải ảnh đại diện lên.')
     } finally {
@@ -194,7 +194,7 @@ export default function ProfilePage() {
       const updatedUser = await updateUserProfile({
         fullName: name,
         phone: phone || undefined,
-        avatar: avatarUrl || undefined
+        ...(avatarUploadId ? { avatarUploadId } : {})
       })
 
       if (password) {
@@ -205,6 +205,7 @@ export default function ProfilePage() {
       }
 
       setUser(updatedUser)
+      setAvatarUploadId(null)
       setProfileSuccess('Cập nhật thông tin cá nhân thành công!')
       setOldPassword('')
       setPassword('')
@@ -419,7 +420,12 @@ export default function ProfilePage() {
                   )}
                   <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                     <span className="text-[10px] font-bold text-white uppercase tracking-wider">Đổi ảnh</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleAvatarChange}
+                    />
                   </label>
                 </div>
                 <div>
@@ -550,6 +556,11 @@ export default function ProfilePage() {
               {ordersLoading ? (
                 <div className="flex py-12 justify-center">
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-800 border-t-transparent"></div>
+                </div>
+              ) : ordersError ? (
+                <div className="flex items-center gap-2 rounded-lg bg-red-50 p-4 text-sm text-red-700 border border-red-150">
+                  <AlertCircle className="h-5 w-5 shrink-0 text-red-650" />
+                  <span>{ordersError}</span>
                 </div>
               ) : orders.length === 0 ? (
                 <div className="text-center py-12 border border-stone-200 border-dashed rounded-2xl bg-stone-50/20">

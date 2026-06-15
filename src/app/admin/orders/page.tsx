@@ -35,6 +35,7 @@ export default function AdminOrdersPage() {
 
   const fetchOrdersList = () => {
     setLoading(true)
+    setError('')
     getAdminOrders()
       .then((data: any) => {
         let list: any[] = []
@@ -62,7 +63,7 @@ export default function AdminOrdersPage() {
         }
       })
       .catch((err) => {
-        setError('Không thể tải danh sách đơn hàng.')
+        setError(err.message || 'Không thể tải danh sách đơn hàng.')
       })
       .finally(() => setLoading(false))
   }

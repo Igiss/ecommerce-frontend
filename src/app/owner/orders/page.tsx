@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getOwnerOrders, updateOwnerOrderStatus, getOwnerProducts } from '@/lib/api/owner.service'
+import { getOwnerOrders, updateOwnerOrderStatus } from '@/lib/api/owner.service'
 import { useAuthStore } from '@/store/auth.store'
 import { Calendar, Eye, X, AlertCircle, Paintbrush } from 'lucide-react'
 
@@ -26,9 +26,6 @@ export default function OwnerOrdersPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false)
 
-  // Track owner's products Set for filtering
-  const [ownerProductIds, setOwnerProductIds] = useState<Set<string>>(new Set())
-
   const mapBackendStatusToFrontend = (status: string): string => {
     switch (status) {
       case 'confirmed': return 'processing'
@@ -41,49 +38,29 @@ export default function OwnerOrdersPage() {
   const fetchOrdersList = async () => {
     if (!user?.id) return
     setLoading(true)
+    setError('')
     try {
-      // 1. Fetch owner products to identify which ones belong to this owner
-      const productsData = (await getOwnerProducts()) as any
-      let allProducts: any[] = []
-      if (Array.isArray(productsData)) {
-        allProducts = productsData
-      } else if (productsData && typeof productsData === 'object') {
-        if ('items' in productsData && Array.isArray(productsData.items)) {
-          allProducts = productsData.items
-        } else if ('products' in productsData && Array.isArray(productsData.products)) {
-          allProducts = productsData.products
-        }
-      }
-
-      const ownerIds = new Set<string>(allProducts.map((p: any) => p.id || p._id || '').filter(Boolean))
-      setOwnerProductIds(ownerIds)
-
-      // 2. Fetch owner orders
       const ordersData = await getOwnerOrders()
       const allOrdersList = Array.isArray(ordersData) ? ordersData : []
 
-      // 3. Normalize orders and filter down to those containing owner's products
       const normalized = allOrdersList.map((order: any) => {
         const orderItems = (order.items || order.orderItems || []).map((item: any) => ({
           ...item,
           qty: item.quantity || item.qty || 1
         }))
 
-        // Calculate total amount for ONLY the owner's items in this order
-        const ownerItems = orderItems.filter((item: any) => {
-          const itemOwnerId = item.ownerId?.id || item.ownerId?._id || item.ownerId
-          return itemOwnerId && String(itemOwnerId) === String(user?.id)
-        })
-
-        const ownerSubtotal = ownerItems.reduce((sum: number, item: any) => sum + (item.price * item.qty), 0)
-
-        const rawStatus = ownerItems[0]?.fulfillmentStatus || order.orderStatus || order.status
+        const ownerSubtotal = Number(order.ownerTotal)
+          || orderItems.reduce(
+            (sum: number, item: any) => sum + Number(item.total ?? item.price * item.qty),
+            0
+          )
+        const rawStatus = orderItems[0]?.fulfillmentStatus || order.orderStatus || order.status
 
         return {
           ...order,
           status: mapBackendStatusToFrontend(rawStatus),
           totalPrice: order.totalAmount || order.totalPrice || 0,
-          ownerSubtotal, // Total value of owner's goods in this order
+          ownerSubtotal,
           orderItems,
           isPaid: order.paymentStatus === 'paid' || order.isPaid || false
         }
@@ -94,9 +71,9 @@ export default function OwnerOrdersPage() {
       } else {
         setOrders(normalized.filter((order: any) => order.status === statusFilter))
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      setError('Không thể tải danh sách đơn hàng.')
+      setError(err.message || 'Không thể tải danh sách đơn hàng.')
     } finally {
       setLoading(false)
     }
