@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/auth.store'
 import { updateUserProfile, changePassword } from '@/lib/api/auth.service'
+import { requestUpgradeOwner } from '@/lib/api/auth.service'
 import { uploadImage } from '@/lib/api/upload.service'
-import { User, Lock, Mail, AlertCircle, CheckCircle } from 'lucide-react'
+import { User, Lock, Mail, AlertCircle, CheckCircle, Store } from 'lucide-react'
 
 export default function ProfileInfoPage() {
   const { user, setUser } = useAuthStore()
@@ -22,6 +23,14 @@ export default function ProfileInfoPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [profileSuccess, setProfileSuccess] = useState('')
   const [profileError, setProfileError] = useState('')
+
+  // Request Owner States
+  const [storeName, setStoreName] = useState('')
+  const [storePhone, setStorePhone] = useState('')
+  const [storeAddress, setStoreAddress] = useState('')
+  const [requestOwnerLoading, setRequestOwnerLoading] = useState(false)
+  const [requestOwnerSuccess, setRequestOwnerSuccess] = useState('')
+  const [requestOwnerError, setRequestOwnerError] = useState('')
 
   useEffect(() => {
     setMounted(true)
@@ -97,6 +106,26 @@ export default function ProfileInfoPage() {
       setProfileError(err.message || 'Lỗi cập nhật hồ sơ.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleRequestOwner = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setRequestOwnerError('')
+    setRequestOwnerSuccess('')
+    setRequestOwnerLoading(true)
+
+    try {
+      await requestUpgradeOwner({ storeName, storePhone, storeAddress })
+      setRequestOwnerSuccess('Yêu cầu đăng ký Kênh Người Bán đã được gửi thành công. Vui lòng chờ Admin duyệt.')
+      // Update local user state
+      if (user) {
+        setUser({ ...user, isRequestingOwner: true })
+      }
+    } catch (err: any) {
+      setRequestOwnerError(err.message || 'Lỗi khi gửi yêu cầu đăng ký.')
+    } finally {
+      setRequestOwnerLoading(false)
     }
   }
 
@@ -257,6 +286,90 @@ export default function ProfileInfoPage() {
             {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
           </button>
         </form>
+
+        {user.role === 'user' && !user.isRequestingOwner && (
+          <div className="mt-12 pt-8 border-t border-stone-200">
+            <h2 className="text-base font-bold text-stone-900 flex items-center gap-2 mb-2">
+              <Store className="h-5 w-5 text-amber-700" />
+              Đăng ký làm Người bán (Mở Shop)
+            </h2>
+            <p className="text-xs text-stone-550 mb-6">Điền thông tin cửa hàng của bạn để bắt đầu đăng bán sản phẩm.</p>
+            
+            {requestOwnerError && (
+              <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3.5 text-xs text-red-700 border border-red-150 mb-4">
+                <AlertCircle className="h-4.5 w-4.5 text-red-650 shrink-0" />
+                <span>{requestOwnerError}</span>
+              </div>
+            )}
+
+            {requestOwnerSuccess && (
+              <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3.5 text-xs text-green-700 border border-green-150 mb-4">
+                <CheckCircle className="h-4.5 w-4.5 text-green-650 shrink-0" />
+                <span>{requestOwnerSuccess}</span>
+              </div>
+            )}
+
+            {!requestOwnerSuccess && (
+              <form onSubmit={handleRequestOwner} className="space-y-4 max-w-lg">
+                <div>
+                  <label className="block text-xs font-semibold text-stone-555 uppercase">Tên Cửa Hàng</label>
+                  <input
+                    type="text"
+                    required
+                    value={storeName}
+                    onChange={(e) => setStoreName(e.target.value)}
+                    placeholder="Ví dụ: Cốc Xinh Store"
+                    className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-stone-555 uppercase">Số điện thoại Cửa Hàng</label>
+                  <input
+                    type="text"
+                    required
+                    value={storePhone}
+                    onChange={(e) => setStorePhone(e.target.value)}
+                    placeholder="Hotline hỗ trợ khách hàng"
+                    className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-stone-555 uppercase">Địa chỉ Cửa Hàng</label>
+                  <input
+                    type="text"
+                    required
+                    value={storeAddress}
+                    onChange={(e) => setStoreAddress(e.target.value)}
+                    placeholder="Địa chỉ giao dịch chính"
+                    className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={requestOwnerLoading}
+                  className="w-full rounded-xl bg-stone-900 hover:bg-stone-800 transition-colors py-2.5 text-xs font-bold text-white shadow-sm disabled:bg-stone-300 mt-4"
+                >
+                  {requestOwnerLoading ? 'Đang gửi yêu cầu...' : 'Gửi Yêu Cầu Đăng Ký Người Bán'}
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
+        {user.role === 'user' && user.isRequestingOwner && (
+          <div className="mt-12 pt-8 border-t border-stone-200">
+            <div className="rounded-xl bg-amber-50/70 border border-amber-250 p-5">
+              <h2 className="text-sm font-bold text-amber-900 flex items-center gap-2 mb-2">
+                <Store className="h-4.5 w-4.5" />
+                Yêu cầu Mở Shop đang chờ duyệt
+              </h2>
+              <p className="text-[11px] text-amber-800 leading-relaxed">
+                Bạn đã gửi yêu cầu nâng cấp lên Kênh Người Bán. Admin đang xem xét yêu cầu của bạn. Quá trình này thường mất khoảng 24h làm việc. Cảm ơn bạn đã kiên nhẫn!
+              </p>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   )

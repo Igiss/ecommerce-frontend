@@ -43,7 +43,10 @@ export default function AdminUsersPage() {
 
     // Filter by role/status tabs
     if (activeTab === 'pending') {
-      result = result.filter((u) => u.role === 'owner' && u.status === 'pending')
+      result = result.filter((u) => 
+        (u.role === 'owner' && u.status === 'pending') || 
+        (u.role === 'user' && u.isRequestingOwner === true)
+      )
     } else if (activeTab === 'active') {
       result = result.filter((u) => u.role === 'owner' && u.status === 'active')
     } else if (activeTab === 'blocked') {
@@ -57,7 +60,8 @@ export default function AdminUsersPage() {
         (u) =>
           u.fullName?.toLowerCase().includes(query) ||
           u.email?.toLowerCase().includes(query) ||
-          u.phone?.toLowerCase().includes(query)
+          u.phone?.toLowerCase().includes(query) ||
+          u.storeName?.toLowerCase().includes(query)
       )
     }
 
@@ -239,6 +243,14 @@ export default function AdminUsersPage() {
                         <div className="min-w-0">
                           <p className="text-sm font-bold text-stone-900">{u.fullName}</p>
                           <p className="text-xs text-stone-400 mt-0.5 truncate">{u.email}</p>
+                          {u.isRequestingOwner && (
+                            <div className="mt-1 pt-1 border-t border-stone-100">
+                              <p className="text-[10px] text-amber-700 font-medium">Yêu cầu lên Chủ shop:</p>
+                              <p className="text-[10px] text-stone-500">Shop: <b>{u.storeName}</b></p>
+                              <p className="text-[10px] text-stone-500">SĐT: {u.storePhone}</p>
+                              <p className="text-[10px] text-stone-500">Đ/C: {u.storeAddress}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>

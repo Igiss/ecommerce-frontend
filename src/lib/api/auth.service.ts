@@ -41,6 +41,13 @@ export function registerOwner(body: any) {
   })
 }
 
+export function requestUpgradeOwner(body: { storeName: string, storePhone: string, storeAddress: string }) {
+  return apiClient<any>('/users/request-owner', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  })
+}
+
 export function logoutUser() {
   return apiClient<{ message: string }>('/auth/logout', {
     method: 'POST'

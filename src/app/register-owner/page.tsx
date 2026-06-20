@@ -113,134 +113,145 @@ export default function RegisterOwnerPage() {
           <div className="rounded-xl bg-amber-50/70 border border-amber-250 p-4 text-xs text-amber-900 space-y-2">
             <p className="font-bold">Đang đăng nhập: {user.email}</p>
             <p className="leading-relaxed text-[11px] text-amber-800">
-              Hệ thống hiện tại phân tách tài khoản người mua và người bán. Vì email trên đã đăng ký, điền lại email này sẽ bị báo lỗi trùng lặp. Bạn có thể:
+              Email của bạn đã được đăng ký làm tài khoản Khách hàng. Bạn không cần phải tạo tài khoản mới. 
             </p>
-            <ul className="list-disc pl-4 space-y-1 text-[11px] text-amber-800">
-              <li><strong>Đăng ký shop mới:</strong> Vui lòng điền một địa chỉ email chưa từng đăng ký.</li>
-              <li><strong>Dùng tài khoản hiện tại:</strong> Vui lòng liên hệ Admin để nâng cấp tài khoản Google/Buyer của bạn lên Kênh người bán trực tiếp.</li>
-            </ul>
+            <div className="pt-2">
+              <Link 
+                href="/profile" 
+                className="inline-block rounded-lg bg-amber-800 px-4 py-2 text-[11px] font-bold text-white shadow-sm hover:bg-amber-900"
+              >
+                Tới Hồ sơ cá nhân để Mở Shop
+              </Link>
+            </div>
+            <p className="leading-relaxed text-[11px] text-amber-800 pt-2">
+              Hoặc nếu bạn muốn tạo một Shop bằng <strong>email khác</strong>, vui lòng đăng xuất trước khi điền form dưới đây.
+            </p>
           </div>
         )}
 
-        <form className="mt-4 space-y-5" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-xs font-bold text-stone-700 uppercase">
-                Tên cửa hàng / Họ tên chủ shop
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ví dụ: Cốc Xinh Store / Nguyễn Văn A"
-                className="mt-1 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2.5 text-sm transition-all focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
-              />
-            </div>
+        {!user && (
+          <>
+            <form className="mt-4 space-y-5" onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-xs font-bold text-stone-700 uppercase">
+                    Tên cửa hàng / Họ tên chủ shop
+                  </label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ví dụ: Cốc Xinh Store / Nguyễn Văn A"
+                    className="mt-1 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2.5 text-sm transition-all focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  />
+                </div>
 
-            <div>
-              <label htmlFor="email" className="block text-xs font-bold text-stone-700 uppercase">
-                Email đăng ký bán hàng
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="shop@cupshop.com"
-                className="mt-1 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2.5 text-sm transition-all focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
-              />
-            </div>
+                <div>
+                  <label htmlFor="email" className="block text-xs font-bold text-stone-700 uppercase">
+                    Email đăng ký bán hàng
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="shop@cupshop.com"
+                    className="mt-1 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2.5 text-sm transition-all focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  />
+                </div>
 
-            <div>
-              <label htmlFor="phone" className="block text-xs font-bold text-stone-700 uppercase">
-                Số điện thoại liên hệ
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="text"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Ví dụ: 0901234567"
-                className="mt-1 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2.5 text-sm transition-all focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
-              />
-            </div>
+                <div>
+                  <label htmlFor="phone" className="block text-xs font-bold text-stone-700 uppercase">
+                    Số điện thoại liên hệ
+                  </label>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="text"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Ví dụ: 0901234567"
+                    className="mt-1 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2.5 text-sm transition-all focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  />
+                </div>
 
-            <div>
-              <label htmlFor="password" className="block text-xs font-bold text-stone-700 uppercase">
-                Mật khẩu đăng nhập
-              </label>
-              <div className="relative mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Tối thiểu 6 ký tự"
-                  className="block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2.5 pr-10 text-sm transition-all focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
-                />
+                <div>
+                  <label htmlFor="password" className="block text-xs font-bold text-stone-700 uppercase">
+                    Mật khẩu đăng nhập
+                  </label>
+                  <div className="relative mt-1">
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Tối thiểu 6 ký tự"
+                      className="block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2.5 pr-10 text-sm transition-all focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 focus:outline-none"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-xs font-bold text-stone-700 uppercase">
+                    Nhập lại mật khẩu
+                  </label>
+                  <div className="relative mt-1">
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2.5 pr-10 text-sm transition-all focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 focus:outline-none"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
                 <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 focus:outline-none"
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-full justify-center rounded-lg bg-amber-800 px-4 py-2.5 text-sm font-bold text-white shadow-md hover:bg-amber-900 transition-colors focus:outline-none disabled:bg-stone-400"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {loading ? 'Đang gửi đăng ký...' : 'Đăng ký bán hàng'}
                 </button>
               </div>
-            </div>
+            </form>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-xs font-bold text-stone-700 uppercase">
-                Nhập lại mật khẩu
-              </label>
-              <div className="relative mt-1">
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2.5 pr-10 text-sm transition-all focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 focus:outline-none"
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full justify-center rounded-lg bg-amber-800 px-4 py-2.5 text-sm font-bold text-white shadow-md hover:bg-amber-900 transition-colors focus:outline-none disabled:bg-stone-400"
-            >
-              {loading ? 'Đang gửi đăng ký...' : 'Đăng ký bán hàng'}
-            </button>
-          </div>
-        </form>
-
-        <p className="text-center text-xs text-stone-500 pt-2">
-          Đăng ký bán hàng tức là bạn đồng ý với{' '}
-          <Link href="/about" className="font-semibold text-amber-700 hover:underline">
-            Chính sách vận hành Kênh người bán
-          </Link>{' '}
-          của CupShop.
-        </p>
+            <p className="text-center text-xs text-stone-500 pt-2">
+              Đăng ký bán hàng tức là bạn đồng ý với{' '}
+              <Link href="/about" className="font-semibold text-amber-700 hover:underline">
+                Chính sách vận hành Kênh người bán
+              </Link>{' '}
+              của CupShop.
+            </p>
+          </>
+        )}
       </div>
     </div>
   )
