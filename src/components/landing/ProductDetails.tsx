@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getProducts } from '@/lib/api/products.service'
+import { ProductCard } from './ProductCard'
 import type { Product } from '@/types/product'
 import { useCartStore } from '@/store/cart.store'
 import { useWishlistStore } from '@/store/wishlist.store'
@@ -22,6 +24,38 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
   const isFavorite = useWishlistStore((state) => state.hasItem(product.id))
   const [qty, setQty] = useState(1)
   const [status, setStatus] = useState('')
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
+
+  useEffect(() => {
+    getProducts()
+      .then((data: any) => {
+        let list: Product[] = []
+        if (Array.isArray(data)) {
+          list = data
+        } else if (data && typeof data === 'object') {
+          if ('items' in data && Array.isArray(data.items)) {
+            list = data.items
+          } else if ('products' in data && Array.isArray(data.products)) {
+            list = data.products
+          }
+        }
+        
+        const filtered = list
+          .map((item: any) => ({
+            ...item,
+            id: String(item.id || item._id)
+          }))
+          .filter((p: any) => {
+            const currentCat = (product as any).category || (product as any).categoryId?.name || '';
+            const pCat = p.category || p.categoryId?.name || '';
+            return currentCat && pCat && currentCat.toLowerCase() === pCat.toLowerCase() && String(p.id) !== String(product.id);
+          })
+          .slice(0, 4)
+          
+        setRelatedProducts(filtered)
+      })
+      .catch((err) => console.error('Failed to load related products:', err))
+  }, [product])
 
   const imageUrl = (product as any).images?.[0] || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600'
   const stockQty = (product as any).stock ?? (product as any).countInStock ?? 0
@@ -135,8 +169,8 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
                 {stockQty === 0 
                   ? 'Hết hàng' 
                   : isLowStock 
-                    ? `Sắp hết hàng (Còn ${stockQty} cốc)` 
-                    : `Còn hàng (${stockQty} cốc)`
+                    ? `Sắp hết hàng (Còn ${stockQty} sản phẩm)` 
+                    : `Còn hàng (${stockQty} sản phẩm)`
                 }
               </span>
             </div>
@@ -223,6 +257,18 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
       
       {/* Reviews Section */}
       <ProductReviews productId={product.id} />
+
+      {/* Related Products Section */}
+      {relatedProducts.length > 0 && (
+        <div className="mt-16 border-t border-stone-200 pt-12">
+          <h2 className="text-xl font-black text-stone-900 mb-6 tracking-tight">Sản phẩm tương tự</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {relatedProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

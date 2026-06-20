@@ -277,7 +277,7 @@ export default function OwnerProductsPage() {
                       <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
                         isLowStock ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'
                       }`}>
-                        {stockQty} cốc
+                        {stockQty}
                       </span>
                     </td>
                     <td className="py-3 px-6 text-center">
@@ -330,7 +330,7 @@ export default function OwnerProductsPage() {
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-stone-550 uppercase">Tên cốc/sản phẩm</label>
+                <label className="block text-xs font-semibold text-stone-550 uppercase">Tên sản phẩm</label>
                 <input
                   type="text"
                   required

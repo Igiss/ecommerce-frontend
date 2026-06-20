@@ -19,6 +19,8 @@ function ProductsCatalogContent() {
 
   const [selectedCategory, setSelectedCategory] = useState('Tất cả')
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 12
 
   // Sync state from query parameters
   useEffect(() => {
@@ -67,12 +69,16 @@ function ProductsCatalogContent() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Apply filters client-side
+  // Apply filters client-side and reset page
   useEffect(() => {
     let result = [...allProducts]
 
     if (selectedCategory !== 'Tất cả') {
-      result = result.filter((p: any) => p.category === selectedCategory)
+      result = result.filter((p: any) => {
+        const catName = typeof p.category === 'object' ? p.category?.name : (p.category || p.categoryId?.name);
+        if (!catName) return false;
+        return catName.toLowerCase() === selectedCategory.toLowerCase();
+      })
     }
 
     if (searchQuery.trim()) {
@@ -84,7 +90,12 @@ function ProductsCatalogContent() {
     }
 
     setFilteredProducts(result)
+    setCurrentPage(1)
   }, [selectedCategory, searchQuery, allProducts])
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage)
 
 
 
@@ -171,13 +182,48 @@ function ProductsCatalogContent() {
               <p className="text-stone-550 text-sm">Không tìm thấy sản phẩm nào khớp với bộ lọc.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                />
-              ))}
+            <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {paginatedProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                  />
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="mt-12 flex justify-center items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3.5 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
+                  >
+                    Trước
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-9 w-9 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        currentPage === page
+                          ? 'bg-amber-800 text-white shadow-xs'
+                          : 'border border-stone-200 bg-white hover:bg-stone-50 text-stone-700'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3.5 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
+                  >
+                    Sau
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
