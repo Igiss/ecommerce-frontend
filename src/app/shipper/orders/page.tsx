@@ -84,21 +84,21 @@ export default function ShipperOrdersPage() {
       ) : (
         <div className="grid gap-4">
           {orders.map((order) => (
-            <div key={order._id} className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden flex flex-col sm:flex-row">
+            <div key={order._id || order.id} className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden flex flex-col sm:flex-row">
               <div className="p-5 flex-1 space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="font-mono text-xs font-bold text-stone-400 mb-1">
-                      #{order._id.substring(order._id.length - 8).toUpperCase()}
+                      #{String(order._id || order.id).substring(String(order._id || order.id).length - 8).toUpperCase()}
                     </div>
                     <h3 className="font-bold text-stone-900">{order.shippingAddress?.fullName}</h3>
                     <p className="text-sm text-stone-500">{order.shippingAddress?.phone}</p>
                   </div>
                   <div className="text-right">
                     <div className="font-black text-amber-900 text-lg">
-                      {formatCurrency(order.finalAmount)}
+                      {formatCurrency(order.totalAmount || 0)}
                     </div>
-                    {order.paymentMethod === 'cod' ? (
+                    {order.paymentMethod === 'cod' && order.paymentStatus === 'unpaid' ? (
                       <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Thu hộ COD</span>
                     ) : (
                       <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">Đã thanh toán</span>
@@ -118,22 +118,22 @@ export default function ShipperOrdersPage() {
               <div className="bg-stone-50 p-5 sm:w-64 border-t sm:border-t-0 sm:border-l border-stone-100 flex flex-col justify-center gap-3">
                 {order.orderStatus === 'assigned' && (
                   <button
-                    onClick={() => handlePickup(order._id)}
-                    disabled={processingId === order._id}
+                    onClick={() => handlePickup(order._id || order.id)}
+                    disabled={processingId === (order._id || order.id)}
                     className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-800 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-amber-900 disabled:opacity-50 transition-colors"
                   >
-                    {processingId === order._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackageCheck className="h-4 w-4" />}
+                    {processingId === (order._id || order.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackageCheck className="h-4 w-4" />}
                     Nhận lấy hàng
                   </button>
                 )}
 
                 {order.orderStatus === 'shipping' && (
                   <button
-                    onClick={() => handleComplete(order._id)}
-                    disabled={processingId === order._id}
+                    onClick={() => handleComplete(order._id || order.id)}
+                    disabled={processingId === (order._id || order.id)}
                     className="w-full flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
                   >
-                    {processingId === order._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    {processingId === (order._id || order.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                     Giao thành công
                   </button>
                 )}

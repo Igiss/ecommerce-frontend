@@ -104,9 +104,9 @@ export default function ShipperDashboardPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {orders.map(order => (
-            <div key={order._id} className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm flex flex-col h-full">
+            <div key={order._id || order.id} className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm flex flex-col h-full">
               <div className="flex items-center justify-between mb-4 border-b border-stone-100 pb-4">
-                <span className="text-xs font-bold text-stone-500">Mã: #{order.orderId || order._id.slice(-8).toUpperCase()}</span>
+                <span className="text-xs font-bold text-stone-500">Mã: #{order.orderId || String(order._id || order.id).slice(-8).toUpperCase()}</span>
                 {getStatusBadge(order.orderStatus)}
               </div>
               
@@ -132,8 +132,8 @@ export default function ShipperDashboardPage() {
                 <div className="bg-stone-50 rounded-xl p-3 border border-stone-100">
                   <p className="text-xs font-bold text-stone-500 uppercase mb-2">Thông tin thu tiền (COD)</p>
                   <p className="text-lg font-black text-amber-800">
-                    {order.paymentMethod === 'cod' && order.paymentStatus === 'pending' 
-                      ? `${order.totalPrice.toLocaleString('vi-VN')}đ` 
+                    {order.paymentMethod === 'cod' && order.paymentStatus === 'unpaid' 
+                      ? `${(order.totalAmount || 0).toLocaleString('vi-VN')}đ` 
                       : '0đ (Đã thanh toán)'}
                   </p>
                 </div>
@@ -142,22 +142,22 @@ export default function ShipperDashboardPage() {
               <div className="mt-6 pt-4 border-t border-stone-100">
                 {order.orderStatus === 'assigned' && (
                   <button
-                    onClick={() => handlePickup(order._id)}
-                    disabled={actionLoading === order._id}
+                    onClick={() => handlePickup(order._id || order.id)}
+                    disabled={actionLoading === (order._id || order.id)}
                     className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 shadow-md transition-colors disabled:opacity-70"
                   >
-                    {actionLoading === order._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
+                    {actionLoading === (order._id || order.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
                     Nhận đi giao
                   </button>
                 )}
                 
                 {order.orderStatus === 'shipping' && (
                   <button
-                    onClick={() => handleComplete(order._id)}
-                    disabled={actionLoading === order._id}
+                    onClick={() => handleComplete(order._id || order.id)}
+                    disabled={actionLoading === (order._id || order.id)}
                     className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-bold text-white hover:bg-green-700 shadow-md transition-colors disabled:opacity-70"
                   >
-                    {actionLoading === order._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                    {actionLoading === (order._id || order.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                     Giao thành công
                   </button>
                 )}
