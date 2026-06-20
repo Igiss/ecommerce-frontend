@@ -8,5 +8,5 @@ export async function getProducts() {
 }
 
 export function getProductById(id: string | number) {
-  return apiClient<Product>(`/products/${id}`)
+  return apiClient<Product>(`/products/${id}`, { cache: 'no-store' })
 }

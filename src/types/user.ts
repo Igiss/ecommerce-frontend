@@ -1,4 +1,4 @@
-export type UserRole = "user" | "owner" | "admin"
+export type UserRole = "user" | "owner" | "admin" | "shipper" | "shipping_unit"
 export type UserStatus = "pending" | "active" | "blocked"
 
 export interface User {
@@ -13,4 +13,6 @@ export interface User {
   status: UserStatus
   isAdmin?: boolean
   isOwner?: boolean
+  isShipper?: boolean
+  isShippingUnit?: boolean
 }

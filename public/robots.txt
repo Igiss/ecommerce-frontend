@@ -1,0 +1,15 @@
+# *
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /owner
+Disallow: /shipper
+Disallow: /shipping-unit
+Disallow: /profile
+Disallow: /checkout
+
+# Host
+Host: https://cupshop.vn
+
+# Sitemaps
+Sitemap: https://cupshop.vn/sitemap.xml

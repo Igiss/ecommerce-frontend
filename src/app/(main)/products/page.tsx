@@ -1,20 +1,16 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { getProducts } from '@/lib/api/products.service'
 import type { Product } from '@/types/product'
 import { ProductCard } from '@/components/landing/ProductCard'
-import { ProductDetails } from '@/components/landing/ProductDetails'
-import { Storefront } from '@/components/landing/Storefront'
 import { Filter, Search, RefreshCw } from 'lucide-react'
 
 const CATEGORIES = ['Tất cả', 'Ly sứ', 'Ly giữ nhiệt', 'Ly thủy tinh', 'Ly nhựa']
 
 function ProductsCatalogContent() {
   const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
   
   const [allProducts, setAllProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
@@ -23,50 +19,25 @@ function ProductsCatalogContent() {
 
   const [selectedCategory, setSelectedCategory] = useState('Tất cả')
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [isCustomizing, setIsCustomizing] = useState(false)
 
   // Sync state from query parameters
   useEffect(() => {
     const categoryParam = searchParams.get('category')
     const searchParam = searchParams.get('search')
-    const productIdParam = searchParams.get('productId') || searchParams.get('id')
 
     if (categoryParam) {
       setSelectedCategory(categoryParam)
     } else {
       setSelectedCategory('Tất cả')
     }
-
     if (searchParam) {
       setSearchQuery(searchParam.toLowerCase())
     } else {
       setSearchQuery('')
     }
+  }, [searchParams])
 
-    if (productIdParam && allProducts.length > 0) {
-      const found = allProducts.find((p) => p.id === productIdParam || (p as any)._id === productIdParam)
-      if (found) {
-        setSelectedProduct(found)
-      } else {
-        setSelectedProduct(null)
-      }
-    } else {
-      setSelectedProduct(null)
-    }
-  }, [searchParams, allProducts])
 
-  const handleSelectProduct = (product: Product | null) => {
-    setSelectedProduct(product)
-    const params = new URLSearchParams(searchParams.toString())
-    if (product) {
-      params.set('productId', product.id)
-    } else {
-      params.delete('productId')
-      params.delete('id')
-    }
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-  }
 
   // Fetch all products
   useEffect(() => {
@@ -115,43 +86,7 @@ function ProductsCatalogContent() {
     setFilteredProducts(result)
   }, [selectedCategory, searchQuery, allProducts])
 
-  if (selectedProduct) {
-    if (isCustomizing) {
-      const ProductCustomizer = require('@/components/customizer/ProductCustomizer').default
-      return (
-        <ProductCustomizer
-          product={selectedProduct}
-          onBack={() => {
-            setIsCustomizing(false)
-            if (typeof window !== 'undefined') {
-              const url = new URL(window.location.href)
-              url.searchParams.delete('customize')
-              url.searchParams.set('productId', selectedProduct.id)
-              window.history.replaceState({}, '', url.toString())
-            }
-          }}
-        />
-      )
-    }
 
-    return (
-      <ProductDetails
-        product={selectedProduct}
-        onBack={() => {
-          handleSelectProduct(null)
-        }}
-        onCustomize={() => {
-          setIsCustomizing(true)
-          if (typeof window !== 'undefined') {
-            const url = new URL(window.location.href)
-            url.searchParams.delete('productId')
-            url.searchParams.set('customize', selectedProduct.id)
-            window.history.pushState({}, '', url.toString())
-          }
-        }}
-      />
-    )
-  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -241,7 +176,6 @@ function ProductsCatalogContent() {
                 <ProductCard
                   key={product.id}
                   product={product}
-                  onCustomize={handleSelectProduct}
                 />
               ))}
             </div>

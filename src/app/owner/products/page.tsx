@@ -27,6 +27,9 @@ export default function OwnerProductsPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState<number | string>('')
+  const [salePrice, setSalePrice] = useState<number | string>('')
+  const [saleStartDate, setSaleStartDate] = useState('')
+  const [saleEndDate, setSaleEndDate] = useState('')
   const [category, setCategory] = useState('')
   const [countInStock, setCountInStock] = useState<number | string>('')
   const [modelUrl, setModelUrl] = useState('')
@@ -93,6 +96,9 @@ export default function OwnerProductsPage() {
     setName('')
     setDescription('')
     setPrice('')
+    setSalePrice('')
+    setSaleStartDate('')
+    setSaleEndDate('')
     setCategory(categoriesList[0]?.id || categoriesList[0]?._id || '')
     setCountInStock('')
     setModelUrl('')
@@ -107,6 +113,9 @@ export default function OwnerProductsPage() {
     setName(product.name)
     setDescription(product.description)
     setPrice(product.price)
+    setSalePrice(product.salePrice || '')
+    setSaleStartDate(product.saleStartDate ? new Date(product.saleStartDate).toISOString().slice(0, 16) : '')
+    setSaleEndDate(product.saleEndDate ? new Date(product.saleEndDate).toISOString().slice(0, 16) : '')
     const catId = product.categoryId?.id || product.categoryId?._id || product.categoryId || ''
     setCategory(catId)
     setCountInStock(product.stock ?? product.countInStock ?? 0)
@@ -163,6 +172,9 @@ export default function OwnerProductsPage() {
         name,
         description,
         price: parsedPrice,
+        salePrice: salePrice ? Number(salePrice) : undefined,
+        saleStartDate: saleStartDate ? new Date(saleStartDate).toISOString() : undefined,
+        saleEndDate: saleEndDate ? new Date(saleEndDate).toISOString() : undefined,
         stock: parsedStock,
         categoryId: category,
         modelUrl: modelUrl || undefined,
@@ -353,6 +365,40 @@ export default function OwnerProductsPage() {
                     className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-semibold text-stone-555 uppercase">Giá Sale (VND)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={salePrice}
+                    onChange={(e) => setSalePrice(e.target.value)}
+                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-stone-555 uppercase">Ngày bắt đầu sale</label>
+                  <input
+                    type="datetime-local"
+                    value={saleStartDate}
+                    onChange={(e) => setSaleStartDate(e.target.value)}
+                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-stone-555 uppercase">Ngày kết thúc sale</label>
+                  <input
+                    type="datetime-local"
+                    value={saleEndDate}
+                    onChange={(e) => setSaleEndDate(e.target.value)}
+                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-stone-555 uppercase">Số lượng trong kho</label>
                   <input
