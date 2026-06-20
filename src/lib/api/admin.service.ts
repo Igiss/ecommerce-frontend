@@ -83,6 +83,12 @@ export async function getTopProducts() {
   }
 }
 
+export async function getAiTrendReport(): Promise<{ report: string }> {
+  return await apiClient<{ report: string }>('/reports/ai-trends', {
+    method: 'GET'
+  })
+}
+
 // Admin Orders
 export async function getAdminOrders(params: { page?: number; limit?: number; status?: string } = {}) {
   const query = toQueryString(params)

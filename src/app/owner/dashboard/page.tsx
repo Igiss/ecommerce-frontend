@@ -2,12 +2,31 @@
 
 import { useEffect, useState } from "react"
 import { getOwnerDashboard } from "@/lib/api/owner.service"
-import { DollarSign, ShoppingBag, Package, Ticket, ShoppingCart, Store } from "lucide-react"
+import { DollarSign, ShoppingBag, Package, Ticket, ShoppingCart, Store, Sparkles } from "lucide-react"
+import { AiReportModal } from "@/components/UI/AiReportModal"
 
 export default function OwnerDashboardPage() {
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false)
+  const [aiReport, setAiReport] = useState("")
+  const [aiLoading, setAiLoading] = useState(false)
+
+  const handleGenerateAiReport = async () => {
+    setIsAiModalOpen(true)
+    setAiLoading(true)
+    try {
+      const { getOwnerAiTrendReport } = await import("@/lib/api/owner.service")
+      const report = await getOwnerAiTrendReport()
+      setAiReport(report)
+    } catch (err: any) {
+      setAiReport("Đã xảy ra lỗi khi tạo báo cáo AI: " + (err.message || err))
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
   useEffect(() => {
     getOwnerDashboard()
@@ -77,15 +96,24 @@ export default function OwnerDashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Page Title */}
-      <div>
-        <h1 className="text-2xl font-black text-stone-900 tracking-tight flex items-center gap-2">
-          <Store className="h-6 w-6 text-amber-800" />
-          Kênh người bán - Tổng quan
-        </h1>
-        <p className="text-xs text-stone-550 mt-1">
-          Theo dõi kết quả kinh doanh và hiệu suất cửa hàng của bạn.
-        </p>
+      {/* Page Title & AI Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-stone-900 tracking-tight flex items-center gap-2">
+            <Store className="h-6 w-6 text-amber-800" />
+            Kênh người bán - Tổng quan
+          </h1>
+          <p className="text-xs text-stone-550 mt-1">
+            Theo dõi kết quả kinh doanh và hiệu suất cửa hàng của bạn.
+          </p>
+        </div>
+        <button
+          onClick={handleGenerateAiReport}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold shadow-md shadow-amber-600/20 hover:from-amber-700 hover:to-orange-700 transition-all hover:-translate-y-0.5 active:translate-y-0 text-sm whitespace-nowrap"
+        >
+          <Sparkles className="h-4 w-4" />
+          Phân tích xu hướng (AI)
+        </button>
       </div>
 
       {/* Stats Cards Grid */}
@@ -122,6 +150,13 @@ export default function OwnerDashboardPage() {
           và hiển thị doanh thu thực nhận của riêng shop bạn sau khi đơn hàng được hoàn tất.
         </p>
       </div>
+
+      <AiReportModal 
+        isOpen={isAiModalOpen} 
+        onClose={() => setIsAiModalOpen(false)} 
+        report={aiReport} 
+        loading={aiLoading} 
+      />
     </div>
   )
 }

@@ -5,6 +5,10 @@ export function getOwnerDashboard() {
   return apiClient<any>("/owner/dashboard")
 }
 
+export function getOwnerAiTrendReport() {
+  return apiClient<string>("/owner/ai-trends")
+}
+
 // Orders
 export function getOwnerOrders() {
   return apiClient<any[]>("/owner/orders")

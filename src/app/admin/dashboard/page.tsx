@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { getDashboardStats, getRevenueChart, getTopProducts } from '@/lib/api/admin.service'
-import { DollarSign, ShoppingBag, Package, Users, AlertTriangle, ArrowUpRight } from 'lucide-react'
+import { DollarSign, ShoppingBag, Package, Users, AlertTriangle, ArrowUpRight, Sparkles } from 'lucide-react'
+import { AiReportModal } from '@/components/UI/AiReportModal'
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<any>(null)
@@ -11,6 +12,24 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false)
+  const [aiReport, setAiReport] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+
+  const handleGenerateAiReport = async () => {
+    setIsAiModalOpen(true)
+    setAiLoading(true)
+    try {
+      const { getAiTrendReport } = await import('@/lib/api/admin.service')
+      const res = await getAiTrendReport()
+      setAiReport(res.report || '')
+    } catch (err: any) {
+      setAiReport('Đã xảy ra lỗi khi tạo báo cáo AI: ' + (err.message || err))
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
   useEffect(() => {
     Promise.all([getDashboardStats(), getRevenueChart(), getTopProducts()])
@@ -135,10 +154,19 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Page Title */}
-      <div>
-        <h1 className="text-2xl font-black text-stone-900 tracking-tight">Thống kê hệ thống</h1>
-        <p className="text-xs text-stone-550 mt-1">Tổng quan về kết quả kinh doanh và số liệu vận hành của cửa hàng.</p>
+      {/* Page Title & AI Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-stone-900 tracking-tight">Thống kê hệ thống</h1>
+          <p className="text-xs text-stone-550 mt-1">Tổng quan về kết quả kinh doanh và số liệu vận hành của cửa hàng.</p>
+        </div>
+        <button
+          onClick={handleGenerateAiReport}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold shadow-md shadow-amber-600/20 hover:from-amber-700 hover:to-orange-700 transition-all hover:-translate-y-0.5 active:translate-y-0 text-sm whitespace-nowrap"
+        >
+          <Sparkles className="h-4 w-4" />
+          Phân tích xu hướng (AI)
+        </button>
       </div>
 
       {/* Stats Cards */}
@@ -430,6 +458,13 @@ export default function AdminDashboardPage() {
           )}
         </div>
       </div>
+
+      <AiReportModal 
+        isOpen={isAiModalOpen} 
+        onClose={() => setIsAiModalOpen(false)} 
+        report={aiReport} 
+        loading={aiLoading} 
+      />
     </div>
   )
 }
