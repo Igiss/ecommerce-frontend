@@ -26,6 +26,7 @@ export default function ProfileOrdersPage() {
   const mapBackendStatusToFrontend = (status: string): string => {
     switch (status) {
       case 'confirmed': return 'processing'
+      case 'assigned': return 'processing'
       case 'shipping': return 'shipped'
       case 'completed': return 'delivered'
       default: return status

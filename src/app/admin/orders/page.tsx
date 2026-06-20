@@ -267,28 +267,9 @@ export default function AdminOrdersPage() {
               <div className="bg-stone-50 border border-stone-150 rounded-xl p-4">
                 <h4 className="text-xs font-bold text-stone-500 uppercase mb-3">Cập nhật trạng thái vận đơn</h4>
                 <div className="flex items-center gap-3">
-                  {selectedOrder.status === 'pending' ? (
-                    <button
-                      onClick={() => handleStatusChange(selectedOrder._id || selectedOrder.id, 'processing')}
-                      disabled={statusUpdateLoading}
-                      className="rounded-lg border border-amber-800 bg-amber-800 text-white hover:bg-amber-900 px-4 py-1.5 text-xs font-bold transition-colors shadow-sm"
-                    >
-                      Xác nhận & Phân bổ tự động
-                    </button>
-                  ) : (
-                    <select
-                      value={selectedOrder.status}
-                      disabled={statusUpdateLoading || selectedOrder.status === 'cancelled'}
-                      onChange={(e) => handleStatusChange(selectedOrder._id || selectedOrder.id, e.target.value)}
-                      className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-bold focus:outline-none disabled:bg-stone-100"
-                    >
-                      <option value="pending">Chờ xác nhận</option>
-                      <option value="processing">Đã xác nhận & Phân bổ</option>
-                      <option value="shipped">Đang giao hàng</option>
-                      <option value="delivered">Đã giao hàng</option>
-                      <option value="cancelled" disabled>Đã hủy</option>
-                    </select>
-                  )}
+                  <span className={`inline-flex rounded-full px-3 py-1 font-bold border ${getStatusBadgeClass(selectedOrder.status)}`}>
+                    {getStatusText(selectedOrder.status)}
+                  </span>
                   
                   {selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
                     <button

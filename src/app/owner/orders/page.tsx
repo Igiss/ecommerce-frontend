@@ -54,7 +54,10 @@ export default function OwnerOrdersPage() {
             (sum: number, item: any) => sum + Number(item.total ?? item.price * item.qty),
             0
           )
-        const rawStatus = orderItems[0]?.fulfillmentStatus || order.orderStatus || order.status
+        const globalStatus = order.orderStatus || order.status
+        const rawStatus = ['completed', 'cancelled', 'returned'].includes(globalStatus) 
+          ? globalStatus 
+          : (orderItems[0]?.fulfillmentStatus || globalStatus)
 
         return {
           ...order,
@@ -338,18 +341,9 @@ export default function OwnerOrdersPage() {
               <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-4">
                 <h4 className="text-xs font-bold text-amber-900 uppercase mb-3">Trạng thái vận đơn (Cập nhật cho toàn đơn)</h4>
                 <div className="flex items-center gap-3">
-                  <select
-                    value={selectedOrder.status}
-                    disabled={statusUpdateLoading || selectedOrder.status === 'cancelled'}
-                    onChange={(e) => handleStatusChange(selectedOrder._id || selectedOrder.id, e.target.value)}
-                    className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold focus:outline-none disabled:bg-stone-100 text-stone-800"
-                  >
-                    <option value="pending">Chờ xác nhận</option>
-                    <option value="processing">Đang xử lý (In 3D)</option>
-                    <option value="shipped">Đang giao hàng</option>
-                    <option value="delivered">Đã giao hàng</option>
-                    <option value="cancelled" disabled>Đã hủy</option>
-                  </select>
+                  <span className={`inline-flex rounded-full px-3 py-1 text-sm font-bold border ${getStatusBadgeClass(selectedOrder.status)}`}>
+                    {getStatusText(selectedOrder.status)}
+                  </span>
                   
                   {selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
                     <button
