@@ -4,15 +4,19 @@ import { useState } from 'react'
 import type { Product } from '@/types/product'
 import { useCartStore } from '@/store/cart.store'
 import { useWishlistStore } from '@/store/wishlist.store'
+import { useAuthStore } from '@/store/auth.store'
 import { ArrowLeft, ShoppingCart, Sparkles, Plus, Minus, Heart, Share2 } from 'lucide-react'
+import { ProductReviews } from '@/components/UI/ProductReviews'
+import { getActivePrice } from '@/utils/price'
 
 interface ProductDetailsProps {
   product: Product
-  onBack: () => void
-  onCustomize: () => void
+  onBack?: () => void
+  onCustomize?: () => void
 }
 
 export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsProps) {
+  const router = import('next/navigation').then(m => m.useRouter).catch(() => null)
   const addItem = useCartStore((state) => state.addItem)
   const toggleFavorite = useWishlistStore((state) => state.toggleFavorite)
   const isFavorite = useWishlistStore((state) => state.hasItem(product.id))
@@ -22,6 +26,9 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
   const imageUrl = (product as any).images?.[0] || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600'
   const stockQty = (product as any).stock ?? (product as any).countInStock ?? 0
   const isLowStock = stockQty < 5
+  
+  const activePrice = getActivePrice(product)
+  const isSale = activePrice < product.price
 
   const handleAddToCart = () => {
     if (qty > stockQty) {
@@ -58,8 +65,11 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Back Button */}
       <button
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-stone-500 hover:text-stone-900 transition-colors mb-6 text-sm font-bold"
+        onClick={() => {
+          if (onBack) onBack()
+          else if (typeof window !== 'undefined') window.history.back()
+        }}
+        className="flex h-8 items-center gap-1.5 rounded-full bg-stone-100 px-3 text-xs font-semibold text-stone-600 transition-colors hover:bg-stone-200"
       >
         <ArrowLeft className="h-4.5 w-4.5" />
         Quay lại cửa hàng
@@ -95,8 +105,13 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
             {/* Price */}
             <div className="mt-4 flex items-baseline gap-2">
               <span className="text-2xl font-black text-amber-900">
-                {product.price.toLocaleString('vi-VN')}đ
+                {activePrice.toLocaleString('vi-VN')}đ
               </span>
+              {isSale && (
+                <span className="text-sm font-medium text-stone-400 line-through">
+                  {product.price.toLocaleString('vi-VN')}đ
+                </span>
+              )}
             </div>
 
             {/* Description */}
@@ -130,7 +145,7 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
             <div className="mt-3 flex items-center gap-2">
               {/* Wishlist Toggle Button */}
               <button
-                onClick={() => toggleFavorite(product)}
+                onClick={() => toggleFavorite(product, !!useAuthStore.getState().user)}
                 className="flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors text-stone-600 shadow-xs cursor-pointer"
                 title={isFavorite ? "Bỏ yêu thích" : "Yêu thích"}
               >
@@ -191,17 +206,23 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
               </button>
 
               {/* Design in 3D */}
-              <button
-                onClick={onCustomize}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-amber-800 text-amber-850 hover:bg-amber-50/50 transition-colors py-3 px-6 text-sm font-bold shadow-sm"
+              <button 
+                onClick={() => {
+                  if (onCustomize) onCustomize()
+                  else if (typeof window !== 'undefined') window.location.href = `/custom?productId=${product?.id}`
+                }}
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-amber-800 text-sm font-bold text-white transition-colors hover:bg-amber-900 focus:outline-none"
               >
-                <Sparkles className="h-4.5 w-4.5 text-amber-700" />
+                <Sparkles className="h-4.5 w-4.5 text-white" />
                 Tự thiết kế 3D
               </button>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Reviews Section */}
+      <ProductReviews productId={product.id} />
     </div>
   )
 }

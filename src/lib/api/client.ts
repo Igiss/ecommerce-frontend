@@ -18,7 +18,14 @@ export async function apiClient<T>(
     headers.set("Content-Type", "application/json")
   }
 
-  const response = await fetch(`/api${path}`, {
+  const baseUrl = typeof window === 'undefined' 
+    ? (process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3000') 
+    : ''
+
+  const finalUrl = `${baseUrl}/api${path}`
+  console.log(`[apiClient] Fetching: ${finalUrl}`)
+
+  const response = await fetch(finalUrl, {
     ...init,
     headers,
     credentials: "include",
@@ -33,6 +40,10 @@ export async function apiClient<T>(
       }
     } catch {
       // Ignore
+    }
+    
+    if (typeof window === 'undefined') {
+      require('fs').appendFileSync('debug-api.log', `Error fetching ${finalUrl}: ${errMsg}\n`)
     }
     throw new ApiError(errMsg, response.status)
   }

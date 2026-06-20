@@ -24,6 +24,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         name: user.fullName || user.name || '',
         isAdmin: user.role === 'admin',
         isOwner: user.role === 'owner',
+        isShipper: user.role === 'shipper',
+        isShippingUnit: user.role === 'shipping_unit',
       },
     })
   },

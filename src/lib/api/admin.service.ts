@@ -208,3 +208,11 @@ export function updateUserRole(userId: string, role: 'user' | 'owner' | 'admin')
     body: JSON.stringify({ role })
   })
 }
+
+// Admin Notifications
+export function broadcastNotification(body: { title: string; message: string; type: string }) {
+  return apiClient<any>('/notifications/broadcast', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  })
+}

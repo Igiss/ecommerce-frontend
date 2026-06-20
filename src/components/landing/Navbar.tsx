@@ -8,7 +8,7 @@ import { useCartStore } from '@/store/cart.store'
 import { useWishlistStore } from '@/store/wishlist.store'
 import { logoutUser } from '@/lib/api/auth.service'
 import { getMyNotifications, markNotificationRead, markAllNotificationsRead } from '@/lib/api/notification.service'
-import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, X, Search, Heart, Store, Bell } from 'lucide-react'
+import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, X, Search, Heart, Store, Bell, Truck, Package } from 'lucide-react'
 
 export function Navbar() {
   const router = useRouter()
@@ -284,7 +284,27 @@ export function Navbar() {
                         Kênh người bán
                       </Link>
                     )}
-                    {!user.isAdmin && !user.isOwner && (
+                    {user.isShippingUnit && (
+                      <Link
+                        href="/shipping-unit/dashboard"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-50 hover:text-amber-800 transition-colors font-medium"
+                      >
+                        <Package className="h-4 w-4 text-stone-400" />
+                        Kênh Đơn vị VC
+                      </Link>
+                    )}
+                    {user.isShipper && (
+                      <Link
+                        href="/shipper/dashboard"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-50 hover:text-amber-800 transition-colors font-medium"
+                      >
+                        <Truck className="h-4 w-4 text-stone-400" />
+                        Kênh Tài xế
+                      </Link>
+                    )}
+                    {!user.isAdmin && !user.isOwner && !user.isShipper && !user.isShippingUnit && (
                       <Link
                         href="/register-owner"
                         onClick={() => setDropdownOpen(false)}
@@ -311,7 +331,7 @@ export function Navbar() {
                         <Heart className="h-4 w-4 text-stone-400" />
                         Danh sách yêu thích
                       </span>
-                      {wishlistCount > 0 && (
+                      {mounted && wishlistCount > 0 && (
                         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
                           {wishlistCount}
                         </span>
@@ -336,7 +356,7 @@ export function Navbar() {
                   title="Danh sách yêu thích"
                 >
                   <Heart className="h-5.5 w-5.5" />
-                  {wishlistCount > 0 && (
+                  {mounted && wishlistCount > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
                       {wishlistCount}
                     </span>
@@ -410,7 +430,7 @@ export function Navbar() {
                 pathname === '/wishlist' ? 'bg-amber-50 text-amber-800' : 'text-stone-700'
               }`}
             >
-              Yêu thích {wishlistCount > 0 && `(${wishlistCount})`}
+              Yêu thích {mounted && wishlistCount > 0 && `(${wishlistCount})`}
             </Link>
             <Link
               href="/about"
@@ -439,7 +459,25 @@ export function Navbar() {
                 Kênh người bán (Owner)
               </Link>
             )}
-            {user && !user.isAdmin && !user.isOwner && (
+            {user?.isShippingUnit && (
+              <Link
+                href="/shipping-unit/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-bold text-amber-800 hover:bg-stone-100"
+              >
+                Kênh Đơn vị VC
+              </Link>
+            )}
+            {user?.isShipper && (
+              <Link
+                href="/shipper/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-bold text-amber-800 hover:bg-stone-100"
+              >
+                Kênh Tài xế (Shipper)
+              </Link>
+            )}
+            {user && !user.isAdmin && !user.isOwner && !user.isShippingUnit && !user.isShipper && (
               <Link
                 href="/register-owner"
                 onClick={() => setMobileMenuOpen(false)}

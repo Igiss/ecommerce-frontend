@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { logoutUser } from '@/lib/api/auth.service'
 import Link from 'next/link'
-import { LayoutDashboard, ShoppingCart, Calendar, Ticket, ArrowLeft, Loader2, LogOut, Shield, Users, FolderOpen } from 'lucide-react'
+import { LayoutDashboard, ShoppingCart, Calendar, Ticket, ArrowLeft, Loader2, LogOut, Shield, Users, FolderOpen, Bell, Truck } from 'lucide-react'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -56,8 +56,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const sidebarLinks = [
     { href: '/admin/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+    { href: '/admin/orders', label: 'Quản lý đơn hàng', icon: ShoppingCart },
+    { href: '/admin/shipping-units', label: 'Đơn vị vận chuyển', icon: Truck },
     { href: '/admin/users', label: 'Duyệt chủ shop', icon: Users },
-    { href: '/admin/categories', label: 'Danh mục sản phẩm', icon: FolderOpen }
+    { href: '/admin/categories', label: 'Danh mục sản phẩm', icon: FolderOpen },
+    { href: '/admin/notifications', label: 'Phát hành Thông báo', icon: Bell }
   ]
 
   return (

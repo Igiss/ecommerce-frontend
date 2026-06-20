@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { getUserProfile } from "@/lib/api/auth.service"
 import { useAuthStore } from "@/store/auth.store"
+import { useWishlistStore } from "@/store/wishlist.store"
 
 export function AuthBootstrap() {
   const setUser = useAuthStore((state) => state.setUser)
@@ -13,6 +14,9 @@ export function AuthBootstrap() {
       try {
         const user = await getUserProfile()
         setUser(user)
+        if (user) {
+          useWishlistStore.getState().syncWithServer()
+        }
       } catch {
         setUser(null)
       } finally {

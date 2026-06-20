@@ -4,13 +4,11 @@ import type { Product } from '@/types/product'
 import { ProductCard } from './ProductCard'
 import { Sparkles, ArrowDown, Award, ShieldCheck, Truck } from 'lucide-react'
 
-interface HomeProps {
-  onCustomize: (product: Product) => void
-}
+interface HomeProps {}
 
 const CATEGORIES = ['Tất cả', 'Ly sứ', 'Ly giữ nhiệt', 'Ly thủy tinh', 'Ly nhựa']
 
-export function Home({ onCustomize }: HomeProps) {
+export function Home(props: HomeProps) {
   const [allProducts, setAllProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [selectedCategory, setSelectedCategory] = useState('Tất cả')
@@ -179,7 +177,7 @@ export function Home({ onCustomize }: HomeProps) {
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} onCustomize={onCustomize} />
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}

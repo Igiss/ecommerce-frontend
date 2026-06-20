@@ -14,6 +14,19 @@ export function getOwnerOrder(id: string) {
   return apiClient<any>(`/owner/orders/${id}`)
 }
 
+export function updateOwnerReturnStatus(id: string, itemId: string, returnStatus: string, returnReason?: string) {
+  return apiClient<any>(`/owner/orders/${id}/items/${itemId}/return-status`, {
+    method: "PATCH",
+    body: JSON.stringify({ returnStatus, returnReason }),
+  })
+}
+
+export function handOverToShipping(id: string) {
+  return apiClient<any>(`/owner/orders/${id}/hand-over`, {
+    method: "PATCH",
+  })
+}
+
 export function updateOwnerOrderStatus(id: string, orderStatus: string) {
   return apiClient<any>(`/owner/orders/${id}/status`, {
     method: "PATCH",

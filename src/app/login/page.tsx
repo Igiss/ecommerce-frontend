@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
+import { useWishlistStore } from '@/store/wishlist.store'
 import { loginUser } from '@/lib/api/auth.service'
 import { Coffee, Eye, EyeOff, AlertCircle } from 'lucide-react'
 
@@ -31,8 +32,21 @@ export default function LoginPage() {
 
     try {
       const data = await loginUser({ email, password })
-      setUser(data.user || data)
-      router.replace('/')
+      const userObj = data.user || data
+      setUser(userObj)
+      useWishlistStore.getState().syncWithServer()
+      
+      if (userObj.isAdmin) {
+        router.replace('/admin/dashboard')
+      } else if (userObj.isShipper) {
+        router.replace('/shipper/dashboard')
+      } else if (userObj.isShippingUnit) {
+        router.replace('/shipping-unit/dashboard')
+      } else if (userObj.isOwner) {
+        router.replace('/owner/dashboard')
+      } else {
+        router.replace('/')
+      }
       router.refresh()
     } catch (err: any) {
       setError(err.message || 'Email hoặc mật khẩu không đúng')

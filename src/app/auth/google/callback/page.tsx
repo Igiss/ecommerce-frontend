@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
+import { useWishlistStore } from '@/store/wishlist.store'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -22,8 +23,10 @@ function GoogleCallbackContent() {
       }
 
       try {
-        const user = await getUserProfile()
-        setUser(user)
+        const profile = await getUserProfile()
+        setUser(profile)
+        useWishlistStore.getState().syncWithServer()
+        
         router.replace('/')
         router.refresh()
       } catch (err: any) {
