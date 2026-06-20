@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useWishlistStore } from '@/store/wishlist.store'
 import { ProductCard } from '@/components/landing/ProductCard'
-import { ProductDetails } from '@/components/landing/ProductDetails'
 import { Heart, ArrowLeft, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
@@ -11,8 +10,6 @@ export default function WishlistPage() {
   const wishlistItems = useWishlistStore((state) => state.items)
   
   const [mounted, setMounted] = useState(false)
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
-  const [isCustomizing, setIsCustomizing] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -26,25 +23,6 @@ export default function WishlistPage() {
     )
   }
 
-  if (selectedProduct) {
-    if (isCustomizing) {
-      const ProductCustomizer = require('@/components/customizer/ProductCustomizer').default
-      return (
-        <ProductCustomizer
-          product={selectedProduct}
-          onBack={() => setIsCustomizing(false)}
-        />
-      )
-    }
-
-    return (
-      <ProductDetails
-        product={selectedProduct}
-        onBack={() => setSelectedProduct(null)}
-        onCustomize={() => setIsCustomizing(true)}
-      />
-    )
-  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -90,7 +68,6 @@ export default function WishlistPage() {
             <ProductCard
               key={product.id}
               product={product}
-              onCustomize={setSelectedProduct}
             />
           ))}
         </div>
