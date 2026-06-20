@@ -10,3 +10,7 @@ export async function getProducts() {
 export function getProductById(id: string | number) {
   return apiClient<Product>(`/products/${id}`, { cache: 'no-store' })
 }
+
+export function getSuggestedProducts(query: string) {
+  return apiClient<Product[]>(`/products/suggestions?q=${encodeURIComponent(query)}`)
+}

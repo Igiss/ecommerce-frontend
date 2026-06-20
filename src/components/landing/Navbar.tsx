@@ -9,6 +9,7 @@ import { useWishlistStore } from '@/store/wishlist.store'
 import { logoutUser } from '@/lib/api/auth.service'
 import { getMyNotifications, markNotificationRead, markAllNotificationsRead } from '@/lib/api/notification.service'
 import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, X, Search, Heart, Store, Bell, Truck, Package } from 'lucide-react'
+import { SmartSearch } from './SmartSearch'
 
 export function Navbar() {
   const router = useRouter()
@@ -144,18 +145,7 @@ export function Navbar() {
         {/* Search, Cart & User Action */}
         <div className="flex items-center gap-4">
           {/* Search bar desktop */}
-          <form onSubmit={handleSearchSubmit} className="hidden lg:relative lg:block">
-            <input
-              type="text"
-              placeholder="Tìm kiếm ly sứ..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-48 rounded-full border border-stone-200 bg-stone-100/50 py-1.5 pl-4 pr-10 text-xs transition-all placeholder:text-stone-400 focus:w-64 focus:border-amber-600 focus:bg-white focus:outline-none"
-            />
-            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-amber-800">
-              <Search className="h-4 w-4" />
-            </button>
-          </form>
+          <SmartSearch isMobile={false} />
 
           {/* Cart Icon */}
           <Link href="/cart" className="relative p-2 text-stone-600 hover:text-amber-800 transition-colors">
@@ -390,19 +380,8 @@ export function Navbar() {
 
       {/* Mobile Menu Panel */}
       {mobileMenuOpen && (
-        <div className="border-t border-stone-200 bg-stone-50 px-4 py-3 md:hidden">
-          <form onSubmit={handleSearchSubmit} className="relative mb-3">
-            <input
-              type="text"
-              placeholder="Tìm kiếm ly sứ..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-stone-200 bg-white py-2 pl-4 pr-10 text-sm focus:border-amber-600 focus:outline-none"
-            />
-            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400">
-              <Search className="h-4 w-4" />
-            </button>
-          </form>
+        <div className="border-t border-stone-200 px-4 py-4 sm:px-6">
+          <SmartSearch isMobile={true} />
 
           <nav className="flex flex-col gap-2">
             <Link

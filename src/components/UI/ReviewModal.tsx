@@ -58,7 +58,7 @@ export function ReviewModal({ isOpen, onClose, orderId, product, onSuccess }: Re
         productId: product.productId || product.id,
         rating,
         comment,
-        ...(imageUploadIds.length > 0 ? { imageUrls: imageUploadIds } : {}) // Note: backend dto might expect imageUploadIds instead of imageUrls based on reviews.service.ts
+        ...(imageUploadIds.length > 0 ? { imageUploadIds } : {})
       })
 
       setSuccess(true)
