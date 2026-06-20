@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getOwnerOrders, updateOwnerOrderStatus } from '@/lib/api/owner.service'
+import { getOwnerOrders, updateOwnerOrderStatus, updateOwnerReturnStatus, handOverToShipping } from '@/lib/api/owner.service'
 import { useAuthStore } from '@/store/auth.store'
 import { Calendar, Eye, X, AlertCircle, Paintbrush } from 'lucide-react'
 
@@ -112,6 +112,51 @@ export default function OwnerOrdersPage() {
       fetchOrdersList()
     } catch (err: any) {
       alert(err.message || 'Lỗi khi cập nhật trạng thái đơn hàng.')
+    } finally {
+      setStatusUpdateLoading(false)
+    }
+  }
+
+  const handleHandover = async (orderId: string) => {
+    setStatusUpdateLoading(true)
+    try {
+      await handOverToShipping(orderId)
+      alert('Đã xác nhận bàn giao hàng cho đơn vị vận chuyển thành công!')
+      
+      if (selectedOrder) {
+        const updatedItems = selectedOrder.orderItems.map((item: any) => {
+          if (String(item.ownerId?.id || item.ownerId?._id || item.ownerId) === String(user?.id)) {
+            return { ...item, handedOverToShipping: true }
+          }
+          return item
+        })
+        setSelectedOrder({ ...selectedOrder, orderItems: updatedItems })
+      }
+      fetchOrdersList()
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi xác nhận bàn giao.')
+    } finally {
+      setStatusUpdateLoading(false)
+    }
+  }
+
+  const handleReturnStatusChange = async (orderId: string, itemId: string, returnStatus: string) => {
+    setStatusUpdateLoading(true)
+    try {
+      await updateOwnerReturnStatus(orderId, itemId, returnStatus)
+      
+      if (selectedOrder) {
+        const updatedItems = selectedOrder.orderItems.map((item: any) => {
+          if (item._id === itemId || item.id === itemId || item.productId === itemId) {
+            return { ...item, returnStatus }
+          }
+          return item
+        })
+        setSelectedOrder({ ...selectedOrder, orderItems: updatedItems })
+      }
+      fetchOrdersList()
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi cập nhật trạng thái đổi trả.')
     } finally {
       setStatusUpdateLoading(false)
     }
@@ -316,6 +361,20 @@ export default function OwnerOrdersPage() {
                     </button>
                   )}
                 </div>
+                {/* Handover Button */}
+                {(selectedOrder.status === 'processing' || selectedOrder.status === 'shipped') && (
+                  <div className="mt-4 pt-4 border-t border-amber-200/50">
+                    <button
+                      onClick={() => handleHandover(selectedOrder._id || selectedOrder.id)}
+                      disabled={statusUpdateLoading || selectedOrder.orderItems?.some((i: any) => String(i.ownerId?.id || i.ownerId?._id || i.ownerId) === String(user?.id) && i.handedOverToShipping)}
+                      className="rounded-lg border border-amber-800 bg-amber-800 text-white hover:bg-amber-900 px-4 py-2 text-sm font-bold transition-colors shadow-sm disabled:opacity-50 disabled:bg-stone-400 disabled:border-stone-400"
+                    >
+                      {selectedOrder.orderItems?.some((i: any) => String(i.ownerId?.id || i.ownerId?._id || i.ownerId) === String(user?.id) && i.handedOverToShipping) 
+                        ? 'Đã bàn giao cho Shipper' 
+                        : 'Bàn giao cho đơn vị vận chuyển'}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Items List - Only show items belonging to this owner */}
@@ -352,9 +411,54 @@ export default function OwnerOrdersPage() {
                                   )}
                                 </div>
                               )}
+                              
+                              {/* Return Processing */}
+                              {item.returnStatus && item.returnStatus !== 'NONE' && (
+                                <div className="mt-3 bg-red-50 border border-red-100 rounded-lg p-2.5 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-red-800 uppercase">Yêu cầu đổi/trả hàng</span>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-red-200 text-red-600">
+                                      {item.returnStatus === 'PENDING' ? 'Chờ duyệt' : 
+                                       item.returnStatus === 'APPROVED' ? 'Đã duyệt' : 
+                                       item.returnStatus === 'REJECTED' ? 'Đã từ chối' : 
+                                       item.returnStatus === 'RECEIVED' ? 'Đã nhận hàng trả' : item.returnStatus}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-red-600"><span className="font-semibold">Lý do:</span> {item.returnReason}</p>
+                                  {item.returnStatus === 'PENDING' && (
+                                    <div className="flex gap-2 pt-1">
+                                      <button 
+                                        disabled={statusUpdateLoading}
+                                        onClick={() => handleReturnStatusChange(selectedOrder._id || selectedOrder.id, item._id || item.id || item.productId, 'APPROVED')}
+                                        className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold rounded shadow-sm disabled:opacity-50"
+                                      >
+                                        Chấp nhận
+                                      </button>
+                                      <button 
+                                        disabled={statusUpdateLoading}
+                                        onClick={() => handleReturnStatusChange(selectedOrder._id || selectedOrder.id, item._id || item.id || item.productId, 'REJECTED')}
+                                        className="px-2 py-1 bg-stone-200 hover:bg-stone-300 text-stone-700 text-[10px] font-bold rounded shadow-sm disabled:opacity-50"
+                                      >
+                                        Từ chối
+                                      </button>
+                                    </div>
+                                  )}
+                                  {item.returnStatus === 'APPROVED' && (
+                                    <div className="pt-1">
+                                      <button 
+                                        disabled={statusUpdateLoading}
+                                        onClick={() => handleReturnStatusChange(selectedOrder._id || selectedOrder.id, item._id || item.id || item.productId, 'RECEIVED')}
+                                        className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded shadow-sm disabled:opacity-50"
+                                      >
+                                        Đã nhận được hàng trả
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
-                          <span className="text-xs font-extrabold text-stone-900">
+                          <span className="text-xs font-extrabold text-stone-900 mt-1 self-start">
                             {(item.price * item.qty).toLocaleString('vi-VN')}đ
                           </span>
                         </div>

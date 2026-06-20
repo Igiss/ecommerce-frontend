@@ -4,8 +4,10 @@ import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { getOrderById, createVNPayUrl, cancelOrder } from '@/lib/api/orders.service'
-import { AlertCircle, Calendar, MapPin, CreditCard, ChevronLeft, CreditCard as CardIcon, XCircle } from 'lucide-react'
+import { AlertCircle, Calendar, MapPin, CreditCard, ChevronLeft, CreditCard as CardIcon, XCircle, Star } from 'lucide-react'
 import Link from 'next/link'
+import { ReviewModal } from '@/components/UI/ReviewModal'
+import { ReturnModal } from '@/components/UI/ReturnModal'
 
 interface OrderDetailPageProps {
   params: Promise<{ id: string }>
@@ -22,6 +24,9 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const [error, setError] = useState('')
   const [payLoading, setPayLoading] = useState(false)
   const [cancelLoading, setCancelLoading] = useState(false)
+  
+  const [reviewProduct, setReviewProduct] = useState<any>(null)
+  const [returnProduct, setReturnProduct] = useState<any>(null)
 
   const normalizeOrder = (data: any) => {
     const mapBackendStatusToFrontend = (status: string): string => {
@@ -279,10 +284,27 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                   </div>
                 </div>
 
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 flex flex-col items-end gap-2">
                   <span className="text-sm font-extrabold text-stone-900">
                     {item.lineTotal.toLocaleString('vi-VN')}đ
                   </span>
+                  {order.status === 'delivered' && (
+                    <div className="flex gap-2 mt-1">
+                      <button
+                        onClick={() => setReviewProduct(item)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 text-[11px] font-bold hover:bg-amber-100 transition-colors border border-amber-200"
+                      >
+                        <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                        Đánh giá
+                      </button>
+                      <button
+                        onClick={() => setReturnProduct(item)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 text-stone-600 text-[11px] font-bold hover:bg-stone-200 transition-colors border border-stone-200"
+                      >
+                        Đổi/Trả hàng
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -326,6 +348,27 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
           </div>
         </div>
       </div>
+
+      <ReviewModal 
+        isOpen={!!reviewProduct}
+        onClose={() => setReviewProduct(null)}
+        orderId={order.id}
+        product={reviewProduct}
+        onSuccess={() => {
+          setReviewProduct(null)
+        }}
+      />
+
+      <ReturnModal
+        isOpen={!!returnProduct}
+        onClose={() => setReturnProduct(null)}
+        orderId={order.id}
+        product={returnProduct}
+        onSuccess={() => {
+          setReturnProduct(null)
+          void loadOrder()
+        }}
+      />
     </div>
   )
 }

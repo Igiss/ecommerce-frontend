@@ -21,6 +21,13 @@ export function getOrderById(id: string) {
   })
 }
 
+export function requestReturn(id: string, itemId: string, returnReason: string, returnImages?: string[]) {
+  return apiClient<any>(`/orders/${id}/items/${itemId}/return`, {
+    method: 'POST',
+    body: JSON.stringify({ returnReason, returnImages })
+  })
+}
+
 export function cancelOrder(id: string, cancelReason?: string) {
   return apiClient<any>(`/orders/${id}/cancel`, {
     method: 'PATCH',

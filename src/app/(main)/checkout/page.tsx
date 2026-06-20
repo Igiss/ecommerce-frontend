@@ -9,6 +9,17 @@ import { validateCoupon } from '@/lib/api/coupons.service'
 import { getAddresses } from '@/lib/api/address.service'
 import { AlertCircle, Ticket, CreditCard, MapPin, ShieldCheck } from 'lucide-react'
 
+interface Province {
+  code: number
+  name: string
+  wards: Ward[]
+}
+
+interface Ward {
+  code: number
+  name: string
+}
+
 export default function CheckoutPage() {
   const router = useRouter()
   const { user } = useAuthStore()
@@ -17,6 +28,10 @@ export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // VN Provinces Data
+  const [provincesData, setProvincesData] = useState<Province[]>([])
+  const [selectedProvinceObj, setSelectedProvinceObj] = useState<Province | null>(null)
 
   // Form State
   const [fullName, setFullName] = useState('')
@@ -48,6 +63,11 @@ export default function CheckoutPage() {
     } else {
       setFullName(user.name || '')
     }
+
+    fetch('https://provinces.open-api.vn/api/v2/?depth=2')
+      .then(res => res.json())
+      .then(data => setProvincesData(data))
+      .catch(err => console.error('Failed to load provinces', err))
   }, [user, router])
 
   useEffect(() => {
@@ -81,6 +101,7 @@ export default function CheckoutPage() {
       setWard('')
       setProvince('')
       setPostalCode('70000')
+      setSelectedProvinceObj(null)
     } else {
       const selected = savedAddresses.find((a: any) => String(a.addressId) === addrId)
       if (selected) {
@@ -127,7 +148,7 @@ export default function CheckoutPage() {
             Quay lại Trang chủ
           </button>
           <button
-            onClick={() => router.push('/profile')}
+            onClick={() => router.push('/profile/orders')}
             className="w-full rounded-xl border border-stone-300 hover:bg-stone-50 text-stone-700 px-6 py-2.5 text-sm font-bold transition-colors"
           >
             Xem lịch sử mua hàng
@@ -189,7 +210,7 @@ export default function CheckoutPage() {
     setLoading(true)
 
     if (!fullName.trim() || !phone.trim() || !address.trim() || !ward.trim() || !province.trim()) {
-      setError('Vui lòng nhập đầy đủ thông tin giao nhận hàng (Họ tên, SĐT, Địa chỉ, Xã/Phường, Tỉnh/Thành phố).')
+      setError('Vui lòng nhập đầy đủ thông tin giao nhận hàng (Họ tên, SĐT, Tỉnh/Thành phố, Phường/Xã, Địa chỉ).')
       setLoading(false)
       return
     }
@@ -204,7 +225,7 @@ export default function CheckoutPage() {
           fullName, 
           phone, 
           address, 
-          ward, 
+          ward,
           province 
         },
         paymentMethod: paymentMethod === 'VNPay' ? 'VNPAY' : 'COD',
@@ -312,39 +333,79 @@ export default function CheckoutPage() {
                 />
               </div>
 
+              {selectedAddrId === 'manual' ? (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 uppercase">Tỉnh / Thành phố</label>
+                    <select
+                      required
+                      value={province}
+                      onChange={(e) => {
+                        const pName = e.target.value;
+                        setProvince(pName);
+                        const pObj = provincesData.find(x => x.name === pName);
+                        setSelectedProvinceObj(pObj || null);
+                        setWard('');
+                      }}
+                      className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                    >
+                      <option value="">Chọn Tỉnh / Thành phố</option>
+                      {provincesData.map(p => (
+                        <option key={p.code} value={p.name}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 uppercase">Phường / Xã</label>
+                    <select
+                      required
+                      disabled={!selectedProvinceObj}
+                      value={ward}
+                      onChange={(e) => setWard(e.target.value)}
+                      className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 disabled:bg-stone-100"
+                    >
+                      <option value="">Chọn Phường / Xã</option>
+                      {selectedProvinceObj?.wards?.map(w => (
+                        <option key={w.code} value={w.name}>{w.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 uppercase">Tỉnh / Thành phố</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={province}
+                      className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 uppercase">Phường / Xã</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={ward}
+                      className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500"
+                    />
+                  </div>
+                </>
+              )}
+
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-stone-600 uppercase">Địa chỉ cụ thể</label>
                 <input
                   type="text"
                   required
+                  disabled={selectedAddrId !== 'manual'}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Số 12 Đường Nguyễn Huệ, Phường Bến Nghé"
-                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-stone-600 uppercase">Quận / Huyện / Xã / Phường</label>
-                <input
-                  type="text"
-                  required
-                  value={ward}
-                  onChange={(e) => setWard(e.target.value)}
-                  placeholder="Quận 1, Phường Bến Nghé"
-                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-stone-600 uppercase">Tỉnh / Thành phố</label>
-                <input
-                  type="text"
-                  required
-                  value={province}
-                  onChange={(e) => setProvince(e.target.value)}
-                  placeholder="TP. Hồ Chí Minh"
-                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  placeholder="Số 12 Đường Nguyễn Huệ"
+                  className={`mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 ${selectedAddrId !== 'manual' ? 'bg-stone-100 text-stone-500' : 'bg-stone-50/50 focus:bg-white'}`}
                 />
               </div>
             </div>
