@@ -3,7 +3,7 @@ import { apiClient } from './client'
 import { normalizeApiListResponse } from './utils'
 
 export async function getProducts() {
-  const data = await apiClient<unknown>('/products')
+  const data = await apiClient<unknown>('/products?limit=100')
   return normalizeApiListResponse<Product>(data)
 }
 

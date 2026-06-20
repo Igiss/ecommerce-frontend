@@ -127,7 +127,7 @@ export function SmartSearch({ isMobile = false }: { isMobile?: boolean }) {
                   >
                     <div className="h-10 w-10 shrink-0 rounded-lg overflow-hidden bg-stone-100 flex items-center justify-center border border-stone-100">
                       {item.images?.[0] ? (
-                        <img src={item.images[0]} alt={item.name} className="h-full w-full object-cover" />
+                        <img src={item.images[0]} alt={item.name} className="h-full w-full object-contain" />
                       ) : (
                         <ImageIcon className="h-4 w-4 text-stone-300" />
                       )}

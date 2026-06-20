@@ -24,6 +24,16 @@ export default function ProfileInfoPage() {
   const [profileSuccess, setProfileSuccess] = useState('')
   const [profileError, setProfileError] = useState('')
 
+  // Crop Modal States
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false)
+  const [tempImageSrc, setTempImageSrc] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [zoom, setZoom] = useState(1.0)
+  const [offsetX, setOffsetX] = useState(0)
+  const [offsetY, setOffsetY] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+
   // Request Owner States
   const [storeName, setStoreName] = useState('')
   const [storePhone, setStorePhone] = useState('')
@@ -45,23 +55,133 @@ export default function ProfileInfoPage() {
     setAvatarUploadId(null)
   }, [mounted, user])
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    setSelectedFile(file)
+    setTempImageSrc(URL.createObjectURL(file))
+    setZoom(1.0)
+    setOffsetX(0)
+    setOffsetY(0)
+    setIsCropModalOpen(true)
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true)
+    setDragStart({ x: e.clientX - offsetX, y: e.clientY - offsetY })
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return
+    setOffsetX(e.clientX - dragStart.x)
+    setOffsetY(e.clientY - dragStart.y)
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true)
+      setDragStart({ x: e.touches[0].clientX - offsetX, y: e.touches[0].clientY - offsetY })
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length !== 1) return
+    setOffsetX(e.touches[0].clientX - dragStart.x)
+    setOffsetY(e.touches[0].clientY - dragStart.y)
+  }
+
+  const handleTouchEnd = () => {
+    setIsDragging(false)
+  }
+
+  const handleCancelCrop = () => {
+    setIsCropModalOpen(false)
+    if (tempImageSrc) {
+      URL.revokeObjectURL(tempImageSrc)
+    }
+    setTempImageSrc('')
+    setSelectedFile(null)
+  }
+
+  const handleCropSave = async () => {
+    if (!tempImageSrc || !selectedFile) return
+
     setUploadingAvatar(true)
+    setIsCropModalOpen(false)
     setProfileError('')
     setProfileSuccess('')
 
     try {
-      const upload = await uploadImage(file, 'avatar')
+      const img = new Image()
+      img.src = tempImageSrc
+      await new Promise((resolve, reject) => {
+        img.onload = resolve
+        img.onerror = reject
+      })
+
+      const canvas = document.createElement('canvas')
+      canvas.width = 400
+      canvas.height = 400
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Could not get canvas context')
+
+      const naturalWidth = img.naturalWidth
+      const naturalHeight = img.naturalHeight
+
+      let W_base = 200
+      let H_base = 200
+
+      if (naturalWidth > naturalHeight) {
+        H_base = 200
+        W_base = 200 * (naturalWidth / naturalHeight)
+      } else {
+        W_base = 200
+        H_base = 200 * (naturalHeight / naturalWidth)
+      }
+
+      const W_zoom = W_base * zoom
+      const H_zoom = H_base * zoom
+
+      const x = (200 - W_zoom) / 2 + offsetX
+      const y = (200 - H_zoom) / 2 + offsetY
+
+      const canvasWidth = W_zoom * 2
+      const canvasHeight = H_zoom * 2
+      const canvasX = x * 2
+      const canvasY = y * 2
+
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, 400, 400)
+      ctx.drawImage(img, canvasX, canvasY, canvasWidth, canvasHeight)
+
+      const croppedBlob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.9)
+      })
+
+      if (!croppedBlob) throw new Error('Failed to crop image')
+
+      const croppedFile = new File([croppedBlob], selectedFile.name, {
+        type: 'image/jpeg',
+      })
+
+      const upload = await uploadImage(croppedFile, 'avatar')
       setAvatarUploadId(upload.id)
       setAvatarUrl(upload.url)
-      setProfileSuccess('Tải ảnh đại diện lên thành công! Nhấn "Lưu thay đổi" để cập nhật.')
+      setProfileSuccess('Cắt và tải ảnh đại diện lên thành công! Nhấn "Lưu thay đổi" để cập nhật.')
     } catch (err: any) {
       setProfileError(err.message || 'Lỗi tải ảnh đại diện lên.')
     } finally {
       setUploadingAvatar(false)
+      if (tempImageSrc) {
+        URL.revokeObjectURL(tempImageSrc)
+      }
+      setTempImageSrc('')
+      setSelectedFile(null)
     }
   }
 
@@ -371,6 +491,84 @@ export default function ProfileInfoPage() {
         )}
 
       </div>
+
+      {/* Crop Modal */}
+      {isCropModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-xl max-w-sm w-full flex flex-col items-center gap-6 animate-in zoom-in-95 duration-200">
+            <div className="text-center">
+              <h3 className="text-sm font-bold text-stone-900">Chỉnh sửa ảnh đại diện</h3>
+              <p className="text-[10px] text-stone-500 mt-1">Kéo để di chuyển, sử dụng thanh trượt để điều chỉnh tỉ lệ phù hợp.</p>
+            </div>
+
+            <div className="relative h-[200px] w-[200px] rounded-full overflow-hidden border-2 border-amber-600 bg-stone-100 flex items-center justify-center select-none shadow-md">
+              <img
+                src={tempImageSrc}
+                alt="Crop preview"
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                  transform: `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`,
+                  cursor: 'move',
+                  maxWidth: 'none',
+                  userSelect: 'none',
+                }}
+                className="select-none pointer-events-auto origin-center transition-transform duration-75"
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  if (img.naturalWidth > img.naturalHeight) {
+                    img.style.height = '200px';
+                    img.style.width = 'auto';
+                  } else {
+                    img.style.width = '200px';
+                    img.style.height = 'auto';
+                  }
+                }}
+              />
+            </div>
+
+            <div className="space-y-1.5 w-full max-w-xs">
+              <div className="flex justify-between text-[10px] text-stone-400 font-bold uppercase tracking-wider">
+                <span>Thu nhỏ</span>
+                <span>Phóng to</span>
+              </div>
+              <input
+                type="range"
+                min="1.0"
+                max="3.0"
+                step="0.01"
+                value={zoom}
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                className="w-full h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-amber-800 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex gap-3 w-full">
+              <button
+                type="button"
+                onClick={handleCancelCrop}
+                className="flex-1 rounded-xl border border-stone-200 py-2 text-xs font-bold text-stone-600 hover:bg-stone-50 transition-colors cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleCropSave}
+                className="flex-1 rounded-xl bg-amber-800 hover:bg-amber-900 transition-colors py-2 text-xs font-bold text-white shadow-sm cursor-pointer"
+              >
+                Cắt & Lưu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

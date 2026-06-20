@@ -239,7 +239,7 @@ export function Chatbox() {
                             <img
                               src={pImg}
                               alt={p.name}
-                              className="h-full w-full object-cover"
+                              className="h-full w-full object-contain"
                             />
                             {hasModel && (
                               <span className="absolute top-1 right-1 flex items-center gap-0.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[8px] font-bold text-white">

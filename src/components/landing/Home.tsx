@@ -46,6 +46,13 @@ export function Home(props: HomeProps) {
   const [activeSlide, setActiveSlide] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [parallax, setParallax] = useState({ rotateX: 0, rotateY: 0, shineX: 50, shineY: 50 })
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 12
+  const [pageInput, setPageInput] = useState('')
+
+  useEffect(() => {
+    setPageInput(String(currentPage))
+  }, [currentPage])
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -139,7 +146,12 @@ export function Home(props: HomeProps) {
         return catName.toLowerCase() === selectedCategory.toLowerCase();
       }))
     }
+    setCurrentPage(1)
   }, [selectedCategory, allProducts])
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage)
 
   return (
     <div className="flex flex-col">
@@ -207,7 +219,7 @@ export function Home(props: HomeProps) {
                     </span>
                     
                     <h1 
-                      className={`text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl lg:text-5xl xl:text-6xl max-w-lg lg:max-w-none transition-all duration-700 ease-out ${
+                      className={`text-4xl font-black leading-tight tracking-tight sm:text-5xl lg:text-5xl xl:text-6xl max-w-lg lg:max-w-none bg-clip-text text-transparent bg-gradient-to-r from-white via-stone-100 to-amber-200 transition-all duration-700 ease-out ${
                         idx === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
                       }`}
                       style={{ 
@@ -416,10 +428,106 @@ export function Home(props: HomeProps) {
             <p className="text-sm text-stone-500">Chưa có sản phẩm nào thuộc danh mục này.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+          <div>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {paginatedProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-12 flex flex-wrap justify-center items-center gap-2">
+                {/* First Page Button */}
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
+                  title="Trang đầu tiên"
+                >
+                  Đầu
+                </button>
+
+                {/* Previous Page Button */}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3.5 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
+                >
+                  Trước
+                </button>
+
+                {/* Page Number Buttons */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`h-9 w-9 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      currentPage === page
+                        ? 'bg-amber-800 text-white shadow-xs'
+                        : 'border border-stone-200 bg-white hover:bg-stone-50 text-stone-700'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                {/* Next Page Button */}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3.5 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
+                >
+                  Sau
+                </button>
+
+                {/* Last Page Button */}
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
+                  title="Trang cuối cùng"
+                >
+                  Cuối
+                </button>
+
+                {/* Jump to Page Input */}
+                <div className="flex items-center gap-1.5 ml-2 border-l border-stone-200 pl-4">
+                  <span className="text-xs text-stone-500">Đến trang:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={totalPages}
+                    value={pageInput}
+                    onChange={(e) => setPageInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = parseInt(pageInput, 10);
+                        if (!isNaN(val) && val >= 1 && val <= totalPages) {
+                          setCurrentPage(val);
+                        } else {
+                          setPageInput(String(currentPage));
+                        }
+                      }
+                    }}
+                    className="w-12 h-9 rounded-xl border border-stone-200 bg-white text-center text-xs font-bold text-stone-700 focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    onClick={() => {
+                      const val = parseInt(pageInput, 10);
+                      if (!isNaN(val) && val >= 1 && val <= totalPages) {
+                        setCurrentPage(val);
+                      } else {
+                        setPageInput(String(currentPage));
+                      }
+                    }}
+                    className="px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-xs font-bold text-stone-700 cursor-pointer active:scale-95 transition-all"
+                  >
+                    Đi
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </section>

@@ -17,6 +17,9 @@ export interface CartItem {
 
 interface CartState {
   items: CartItem[]
+  userId: string | null
+  userRole: string | null
+  setUserContext: (userId: string | null, userRole: string | null) => void
   addItem: (product: Product, qty: number, customization?: CartItem['customization']) => void
   removeItem: (productId: string, customizationId?: string) => void
   updateQty: (productId: string, qty: number, customizationId?: string) => void
@@ -31,20 +34,46 @@ export const getCartItemKey = (item: CartItem) => {
   return `${item.product.id}-${c.baseColor}-${c.accentColor}-${c.designName}`
 }
 
+const getStorageKey = (userId: string | null, userRole: string | null) => {
+  if (!userId || !userRole) {
+    return 'cupshop_cart_guest'
+  }
+  return `cupshop_cart_${userRole}_${userId}`
+}
+
 export const useCartStore = create<CartState>((set, get) => {
-  // Load initial cart from localStorage
+  // Load initial guest cart from localStorage
   let initialItems: CartItem[] = []
   if (typeof window !== 'undefined') {
     try {
-      const storedItems = localStorage.getItem('cupshop_cart')
+      let storedItems = localStorage.getItem('cupshop_cart_guest') || localStorage.getItem('cupshop_cart')
       if (storedItems) initialItems = JSON.parse(storedItems)
     } catch {
-      // Ignore parse errors
+      // Ignore
     }
   }
 
   return {
     items: initialItems,
+    userId: null,
+    userRole: null,
+
+    setUserContext: (userId, userRole) => {
+      let loadedItems: CartItem[] = []
+      if (typeof window !== 'undefined') {
+        try {
+          const key = getStorageKey(userId, userRole)
+          let storedItems = localStorage.getItem(key)
+          if (!userId && !storedItems) {
+            storedItems = localStorage.getItem('cupshop_cart')
+          }
+          if (storedItems) loadedItems = JSON.parse(storedItems)
+        } catch {
+          // Ignore
+        }
+      }
+      set({ userId, userRole, items: loadedItems })
+    },
 
     addItem: (product, qty, customization) => {
       const currentItems = get().items
@@ -62,7 +91,8 @@ export const useCartStore = create<CartState>((set, get) => {
       }
 
       if (typeof window !== 'undefined') {
-        localStorage.setItem('cupshop_cart', JSON.stringify(updatedItems))
+        const key = getStorageKey(get().userId, get().userRole)
+        localStorage.setItem(key, JSON.stringify(updatedItems))
       }
       set({ items: updatedItems })
     },
@@ -78,7 +108,8 @@ export const useCartStore = create<CartState>((set, get) => {
       })
 
       if (typeof window !== 'undefined') {
-        localStorage.setItem('cupshop_cart', JSON.stringify(updatedItems))
+        const key = getStorageKey(get().userId, get().userRole)
+        localStorage.setItem(key, JSON.stringify(updatedItems))
       }
       set({ items: updatedItems })
     },
@@ -96,14 +127,16 @@ export const useCartStore = create<CartState>((set, get) => {
       })
 
       if (typeof window !== 'undefined') {
-        localStorage.setItem('cupshop_cart', JSON.stringify(updatedItems))
+        const key = getStorageKey(get().userId, get().userRole)
+        localStorage.setItem(key, JSON.stringify(updatedItems))
       }
       set({ items: updatedItems })
     },
 
     clearCart: () => {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('cupshop_cart')
+        const key = getStorageKey(get().userId, get().userRole)
+        localStorage.removeItem(key)
       }
       set({ items: [] })
     },

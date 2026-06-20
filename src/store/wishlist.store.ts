@@ -1,8 +1,12 @@
 import { create } from 'zustand'
 import type { Product } from '@/types/product'
+import { getMyWishlist, addToWishlist, removeFromWishlist } from '@/lib/api/wishlists.service'
 
 interface WishlistState {
   items: Product[]
+  userId: string | null
+  userRole: string | null
+  setUserContext: (userId: string | null, userRole: string | null) => void
   syncWithServer: () => Promise<void>
   toggleFavorite: (product: Product, isLoggedIn?: boolean) => Promise<void>
   removeItem: (productId: string, isLoggedIn?: boolean) => Promise<void>
@@ -10,31 +14,57 @@ interface WishlistState {
   clearWishlist: () => void
 }
 
-import { getMyWishlist, addToWishlist, removeFromWishlist } from '@/lib/api/wishlists.service'
+const getStorageKey = (userId: string | null, userRole: string | null) => {
+  if (!userId || !userRole) {
+    return 'cupshop_wishlist_guest'
+  }
+  return `cupshop_wishlist_${userRole}_${userId}`
+}
 
 export const useWishlistStore = create<WishlistState>((set, get) => {
-  // Load initial wishlist from localStorage
+  // Load initial guest wishlist
   let initialItems: Product[] = []
   if (typeof window !== 'undefined') {
     try {
-      const storedItems = localStorage.getItem('cupshop_wishlist')
+      const storedItems = localStorage.getItem('cupshop_wishlist_guest') || localStorage.getItem('cupshop_wishlist')
       if (storedItems) initialItems = JSON.parse(storedItems)
     } catch {
-      // Ignore parse errors
+      // Ignore
     }
   }
 
   return {
     items: initialItems,
+    userId: null,
+    userRole: null,
+
+    setUserContext: (userId, userRole) => {
+      let loadedItems: Product[] = []
+      if (typeof window !== 'undefined') {
+        try {
+          const key = getStorageKey(userId, userRole)
+          let storedItems = localStorage.getItem(key)
+          if (!userId && !storedItems) {
+            storedItems = localStorage.getItem('cupshop_wishlist')
+          }
+          if (storedItems) loadedItems = JSON.parse(storedItems)
+        } catch {
+          // Ignore
+        }
+      }
+      set({ userId, userRole, items: loadedItems })
+    },
 
     syncWithServer: async () => {
+      if (get().userRole !== 'user') {
+        return
+      }
       try {
         const data = await getMyWishlist()
-        // Map backend format to local Product format
         const serverItems = data.map(item => {
           const p = item.productId as any
           return {
-            id: p.productId || p._id, // Keep the numeric or string ID depending on your frontend Product type
+            id: p.productId || p._id,
             name: p.name,
             price: p.price,
             image: p.images?.[0] || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600',
@@ -42,11 +72,11 @@ export const useWishlistStore = create<WishlistState>((set, get) => {
           } as Product
         })
         
-        // Merge with local items (optional) or just overwrite with server items
         set({ items: serverItems })
         
         if (typeof window !== 'undefined') {
-          localStorage.setItem('cupshop_wishlist', JSON.stringify(serverItems))
+          const key = getStorageKey(get().userId, get().userRole)
+          localStorage.setItem(key, JSON.stringify(serverItems))
         }
       } catch (err: any) {
         if (err?.status !== 403) {
@@ -61,25 +91,23 @@ export const useWishlistStore = create<WishlistState>((set, get) => {
       let updatedItems
 
       if (exists) {
-        // Remove it
         updatedItems = currentItems.filter(item => String(item.id) !== String(product.id))
       } else {
-        // Add it
         updatedItems = [...currentItems, product]
       }
 
       if (typeof window !== 'undefined') {
-        localStorage.setItem('cupshop_wishlist', JSON.stringify(updatedItems))
+        const key = getStorageKey(get().userId, get().userRole)
+        localStorage.setItem(key, JSON.stringify(updatedItems))
       }
       set({ items: updatedItems })
 
-      // Call API if logged in
-      if (isLoggedIn) {
+      if (isLoggedIn && get().userRole === 'user') {
         try {
           if (exists) {
             await removeFromWishlist(String(product.id))
           } else {
-            await addToWishlist(String(product.id)) // Ensure numeric if backend expects number
+            await addToWishlist(String(product.id))
           }
         } catch (err: any) {
           if (err?.status !== 403) {
@@ -94,11 +122,12 @@ export const useWishlistStore = create<WishlistState>((set, get) => {
       const updatedItems = currentItems.filter(item => String(item.id) !== String(productId))
 
       if (typeof window !== 'undefined') {
-        localStorage.setItem('cupshop_wishlist', JSON.stringify(updatedItems))
+        const key = getStorageKey(get().userId, get().userRole)
+        localStorage.setItem(key, JSON.stringify(updatedItems))
       }
       set({ items: updatedItems })
 
-      if (isLoggedIn) {
+      if (isLoggedIn && get().userRole === 'user') {
         try {
           await removeFromWishlist(String(productId))
         } catch (err: any) {
@@ -115,7 +144,8 @@ export const useWishlistStore = create<WishlistState>((set, get) => {
 
     clearWishlist: () => {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('cupshop_wishlist')
+        const key = getStorageKey(get().userId, get().userRole)
+        localStorage.removeItem(key)
       }
       set({ items: [] })
     }
