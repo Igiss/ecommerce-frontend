@@ -68,7 +68,7 @@ export default function CartPage() {
                   <img
                     src={imageUrl}
                     alt={item.product.name}
-                    className="h-full w-full object-cover object-center"
+                    className="h-full w-full object-contain object-center"
                   />
                 </div>
 

@@ -246,7 +246,7 @@ export default function AdminProductsPage() {
                 return (
                   <tr key={product.id} className="hover:bg-stone-50/45 transition-colors">
                     <td className="py-3 px-6 shrink-0">
-                      <img src={imageUrl} alt={product.name} className="h-10 w-10 rounded-lg object-cover bg-stone-50 border border-stone-100" />
+                      <img src={imageUrl} alt={product.name} className="h-10 w-10 rounded-lg object-contain bg-stone-50 border border-stone-100" />
                     </td>
                     <td className="py-3 px-6 font-bold text-stone-900">
                       <div className="flex items-center gap-1.5">

@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import type { User } from '@/types/user'
+import { useWishlistStore } from './wishlist.store'
+import { useCartStore } from './cart.store'
 
 interface AuthState {
   user: User | null
@@ -14,9 +16,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialized: false,
   setUser: (user) => {
     if (!user) {
+      useWishlistStore.getState().setUserContext(null, null)
+      useCartStore.getState().setUserContext(null, null)
       set({ user: null })
       return
     }
+
+    // Isolate user context in wishlist store
+    useWishlistStore.getState().setUserContext(
+      String(user.id || (user as any)._id),
+      user.role || 'user'
+    )
+
+    // Isolate user context in cart store
+    useCartStore.getState().setUserContext(
+      String(user.id || (user as any)._id),
+      user.role || 'user'
+    )
 
     set({
       user: {
@@ -30,5 +46,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     })
   },
   setInitialized: (initialized) => set({ initialized }),
-  clearAuth: () => set({ user: null }),
+  clearAuth: () => {
+    useWishlistStore.getState().setUserContext(null, null)
+    useCartStore.getState().setUserContext(null, null)
+    set({ user: null })
+  },
 }))

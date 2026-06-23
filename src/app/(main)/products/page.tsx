@@ -3,11 +3,10 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { getProducts } from '@/lib/api/products.service'
+import { getCategories } from '@/lib/api/categories.service'
 import type { Product } from '@/types/product'
 import { ProductCard } from '@/components/landing/ProductCard'
-import { Filter, Search, RefreshCw } from 'lucide-react'
-
-const CATEGORIES = ['Tất cả', 'Ly sứ', 'Ly giữ nhiệt', 'Ly thủy tinh', 'Ly nhựa']
+import { Filter, Search, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
 
 function ProductsCatalogContent() {
   const searchParams = useSearchParams()
@@ -17,8 +16,31 @@ function ProductsCatalogContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const [categories, setCategories] = useState<string[]>(['Tất cả'])
+  const [isExpanded, setIsExpanded] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('Tất cả')
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 12
+  const [pageInput, setPageInput] = useState('')
+
+  useEffect(() => {
+    setPageInput(String(currentPage))
+  }, [currentPage])
+
+  // Fetch active categories dynamically from database
+  useEffect(() => {
+    getCategories('active')
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const names = data.map((c: any) => c.name)
+          setCategories(['Tất cả', ...names])
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load categories', err)
+      })
+  }, [])
 
   // Sync state from query parameters
   useEffect(() => {
@@ -67,12 +89,16 @@ function ProductsCatalogContent() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Apply filters client-side
+  // Apply filters client-side and reset page
   useEffect(() => {
     let result = [...allProducts]
 
     if (selectedCategory !== 'Tất cả') {
-      result = result.filter((p: any) => p.category === selectedCategory)
+      result = result.filter((p: any) => {
+        const catName = typeof p.category === 'object' ? p.category?.name : (p.category || p.categoryId?.name);
+        if (!catName) return false;
+        return catName.toLowerCase() === selectedCategory.toLowerCase();
+      })
     }
 
     if (searchQuery.trim()) {
@@ -84,7 +110,12 @@ function ProductsCatalogContent() {
     }
 
     setFilteredProducts(result)
+    setCurrentPage(1)
   }, [selectedCategory, searchQuery, allProducts])
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage)
 
 
 
@@ -109,7 +140,7 @@ function ProductsCatalogContent() {
               Lọc theo danh mục
             </h3>
             <div className="flex flex-col gap-2">
-              {CATEGORIES.map((cat) => (
+              {(isExpanded ? categories : categories.slice(0, 6)).map((cat) => (
                 <button
                   key={cat}
                   onClick={() => {
@@ -129,6 +160,23 @@ function ProductsCatalogContent() {
                   {cat}
                 </button>
               ))}
+
+              {categories.length > 6 && (
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="mt-1 text-left px-3 py-2 text-xs font-extrabold text-amber-805 hover:text-amber-950 flex items-center gap-1.5 focus:outline-none transition-colors cursor-pointer"
+                >
+                  {isExpanded ? (
+                    <>
+                      Thu gọn <ChevronUp className="h-3.5 w-3.5" />
+                    </>
+                  ) : (
+                    <>
+                      Xem thêm ({categories.length - 6}) <ChevronDown className="h-3.5 w-3.5" />
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </aside>
@@ -150,7 +198,7 @@ function ProductsCatalogContent() {
             }}
             className="w-full rounded-lg border border-stone-350 bg-stone-50/50 p-2 text-xs focus:outline-none"
           >
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
@@ -171,13 +219,109 @@ function ProductsCatalogContent() {
               <p className="text-stone-550 text-sm">Không tìm thấy sản phẩm nào khớp với bộ lọc.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                />
-              ))}
+            <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {paginatedProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                  />
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="mt-12 flex flex-wrap justify-center items-center gap-2">
+                  {/* First Page Button */}
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
+                    title="Trang đầu tiên"
+                  >
+                    Đầu
+                  </button>
+
+                  {/* Previous Page Button */}
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3.5 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
+                  >
+                    Trước
+                  </button>
+
+                  {/* Page Number Buttons */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-9 w-9 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        currentPage === page
+                          ? 'bg-amber-800 text-white shadow-xs'
+                          : 'border border-stone-200 bg-white hover:bg-stone-50 text-stone-700'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  {/* Next Page Button */}
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3.5 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
+                  >
+                    Sau
+                  </button>
+
+                  {/* Last Page Button */}
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
+                    title="Trang cuối cùng"
+                  >
+                    Cuối
+                  </button>
+
+                  {/* Jump to Page Input */}
+                  <div className="flex items-center gap-1.5 ml-2 border-l border-stone-200 pl-4">
+                    <span className="text-xs text-stone-500">Đến trang:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={totalPages}
+                      value={pageInput}
+                      onChange={(e) => setPageInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = parseInt(pageInput, 10);
+                          if (!isNaN(val) && val >= 1 && val <= totalPages) {
+                            setCurrentPage(val);
+                          } else {
+                            setPageInput(String(currentPage));
+                          }
+                        }
+                      }}
+                      className="w-12 h-9 rounded-xl border border-stone-200 bg-white text-center text-xs font-bold text-stone-700 focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <button
+                      onClick={() => {
+                        const val = parseInt(pageInput, 10);
+                        if (!isNaN(val) && val >= 1 && val <= totalPages) {
+                          setCurrentPage(val);
+                        } else {
+                          setPageInput(String(currentPage));
+                        }
+                      }}
+                      className="px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-xs font-bold text-stone-700 cursor-pointer active:scale-95 transition-all"
+                    >
+                      Đi
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

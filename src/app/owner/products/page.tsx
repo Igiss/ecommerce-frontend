@@ -34,12 +34,35 @@ export default function OwnerProductsPage() {
   const [countInStock, setCountInStock] = useState<number | string>('')
   const [modelUrl, setModelUrl] = useState('')
   const [imageFiles, setImageFiles] = useState<FileList | null>(null)
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
   
   // Dynamic categories list
   const [categoriesList, setCategoriesList] = useState<any[]>([])
 
   const [formError, setFormError] = useState('')
+
+  useEffect(() => {
+    if (!imageFiles || imageFiles.length === 0) {
+      setImagePreviews([])
+      return
+    }
+
+    const objectUrls = Array.from(imageFiles).map(file => URL.createObjectURL(file))
+    setImagePreviews(objectUrls)
+
+    return () => {
+      objectUrls.forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [imageFiles])
   const [formLoading, setFormLoading] = useState(false)
+
+  // Helper to format number string to thousands separated by dots
+  const formatPriceString = (val: string | number): string => {
+    if (val === undefined || val === null || val === '') return ''
+    const cleaned = String(val).replace(/\D/g, '')
+    if (!cleaned) return ''
+    return cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  }
 
   // Fetch product list and filter for this owner
   const fetchProductsList = () => {
@@ -255,7 +278,7 @@ export default function OwnerProductsPage() {
                 return (
                   <tr key={product.id} className="hover:bg-stone-50/45 transition-colors">
                     <td className="py-3 px-6 shrink-0">
-                      <img src={imageUrl} alt={product.name} className="h-10 w-10 rounded-lg object-cover bg-stone-50 border border-stone-100" />
+                      <img src={imageUrl} alt={product.name} className="h-10 w-10 rounded-lg object-contain bg-stone-50 border border-stone-100" />
                     </td>
                     <td className="py-3 px-6 font-bold text-stone-900">
                       <div className="flex items-center gap-1.5">
@@ -277,7 +300,7 @@ export default function OwnerProductsPage() {
                       <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
                         isLowStock ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'
                       }`}>
-                        {stockQty} cốc
+                        {stockQty}
                       </span>
                     </td>
                     <td className="py-3 px-6 text-center">
@@ -330,7 +353,7 @@ export default function OwnerProductsPage() {
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-stone-550 uppercase">Tên cốc/sản phẩm</label>
+                <label className="block text-xs font-semibold text-stone-550 uppercase">Tên sản phẩm</label>
                 <input
                   type="text"
                   required
@@ -357,21 +380,27 @@ export default function OwnerProductsPage() {
                 <div>
                   <label className="block text-xs font-semibold text-stone-555 uppercase">Đơn giá (VND)</label>
                   <input
-                    type="number"
+                    type="text"
                     required
-                    min="1"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
+                    value={formatPriceString(price)}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '')
+                      setPrice(raw)
+                    }}
+                    placeholder="Nhập đơn giá..."
                     className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-stone-555 uppercase">Giá Sale (VND)</label>
                   <input
-                    type="number"
-                    min="1"
-                    value={salePrice}
-                    onChange={(e) => setSalePrice(e.target.value)}
+                    type="text"
+                    value={formatPriceString(salePrice)}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '')
+                      setSalePrice(raw)
+                    }}
+                    placeholder="Nhập giá sale..."
                     className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
                   />
                 </div>
@@ -452,9 +481,40 @@ export default function OwnerProductsPage() {
                   </div>
               </div>
               {imageFiles && imageFiles.length > 0 && (
-                <p className="text-xs text-green-700 font-bold mt-2">
-                  Đã chọn {imageFiles.length} file: {Array.from(imageFiles).map(f => f.name).join(', ')}
-                </p>
+                <div className="space-y-2 mt-2">
+                  <p className="text-xs text-green-700 font-bold">
+                    Đã chọn {imageFiles.length} file: {Array.from(imageFiles).map(f => f.name).join(', ')}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {imagePreviews.map((url, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-stone-200 bg-stone-50 flex items-center justify-center">
+                        <img
+                          src={url}
+                          alt={`preview-${idx}`}
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* If editing and has existing images, and no new files selected */}
+              {!imageFiles && editingProduct && editingProduct.images && editingProduct.images.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  <p className="text-xs text-stone-500 font-bold">Ảnh hiện tại của sản phẩm:</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {editingProduct.images.map((imgUrl: string, idx: number) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-stone-200 bg-stone-50 flex items-center justify-center">
+                        <img
+                          src={imgUrl}
+                          alt={`existing-${idx}`}
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {/* Modal Footer Buttons */}

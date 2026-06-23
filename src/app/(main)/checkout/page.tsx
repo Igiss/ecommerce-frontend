@@ -533,7 +533,7 @@ export default function CheckoutPage() {
                 const imageUrl = (item.product as any).images?.[0] || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600'
                 return (
                   <div key={idx} className="flex items-center gap-3 py-3">
-                    <img src={imageUrl} alt={item.product.name} className="h-10 w-10 rounded-lg object-cover bg-stone-50 shrink-0" />
+                    <img src={imageUrl} alt={item.product.name} className="h-10 w-10 rounded-lg object-contain bg-stone-50 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-stone-800 truncate">{item.product.name}</p>
                       <p className="text-[10px] text-stone-500 mt-0.5">Số lượng: {item.qty}</p>

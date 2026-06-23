@@ -75,7 +75,7 @@ export default function OwnerDashboardPage() {
       color: "bg-blue-50 text-blue-800 border-blue-100",
     },
     {
-      label: "Số lượng cốc đã bán",
+      label: "Số lượng sản phẩm đã bán",
       value: stats?.itemCount || 0,
       icon: ShoppingCart,
       color: "bg-emerald-50 text-emerald-800 border-emerald-100",

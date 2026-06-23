@@ -276,7 +276,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             return (
               <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
                 <div className="flex gap-4">
-                  <img src={imageUrl} alt={item.name} className="h-16 w-16 rounded-xl object-cover bg-stone-50 shrink-0" />
+                  <img src={imageUrl} alt={item.name} className="h-16 w-16 rounded-xl object-contain bg-stone-50 shrink-0" />
                   <div>
                     <h3 className="text-sm font-bold text-stone-900">{item.name}</h3>
                     <p className="text-xs text-stone-500 mt-1">Đơn giá: {item.price.toLocaleString('vi-VN')}đ | Số lượng: {item.qty}</p>

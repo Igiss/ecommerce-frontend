@@ -241,11 +241,19 @@ export function Navbar() {
               <>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-1.5 rounded-full border border-stone-200 p-1 pr-3 bg-white/50 hover:bg-white transition-all focus:outline-none"
+                  className="flex items-center gap-1.5 rounded-full border border-stone-200 p-1 pr-3 bg-white/50 hover:bg-white transition-all focus:outline-none cursor-pointer"
                 >
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 font-bold text-amber-800 text-sm">
-                    {(user.name || user.email || 'User').charAt(0).toUpperCase()}
-                  </div>
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt="Avatar"
+                      className="h-7 w-7 rounded-full object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 font-bold text-amber-850 text-sm shrink-0">
+                      {(user.name || user.email || 'User').charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <span className="hidden sm:inline text-xs font-medium text-stone-700">
                     {user.name || user.email || 'User'}
                   </span>
