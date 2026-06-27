@@ -223,7 +223,7 @@ export function Navbar() {
                   {/* Footer */}
                   <div className="border-t border-stone-100 pt-2 pb-1 text-center shrink-0">
                     <Link
-                      href="/profile?tab=notifications"
+                      href="/profile/notifications"
                       onClick={() => setNotiDropdownOpen(false)}
                       className="inline-block text-[11px] font-bold text-amber-800 hover:text-amber-900 transition-colors"
                     >
