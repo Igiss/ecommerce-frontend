@@ -56,7 +56,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const sidebarLinks = [
     { href: '/admin/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
-    { href: '/admin/orders', label: 'Quản lý đơn hàng', icon: ShoppingCart },
     { href: '/admin/shipping-units', label: 'Đơn vị vận chuyển', icon: Truck },
     { href: '/admin/users', label: 'Duyệt chủ shop', icon: Users },
     { href: '/admin/categories', label: 'Danh mục sản phẩm', icon: FolderOpen },

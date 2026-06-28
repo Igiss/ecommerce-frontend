@@ -9,5 +9,15 @@ export interface Product {
   slug?: string
   images?: string[]
   category?: any
+  categoryId?: any
   modelUrl?: string
+  soldCount?: number
+  createdBy?: {
+    id?: string
+    _id?: string
+    fullName?: string
+    email?: string
+    storeName?: string
+    storePhone?: string
+  }
 }

@@ -7,7 +7,7 @@ import type { Product } from '@/types/product'
 import { useCartStore } from '@/store/cart.store'
 import { useWishlistStore } from '@/store/wishlist.store'
 import { useAuthStore } from '@/store/auth.store'
-import { ArrowLeft, ShoppingCart, Sparkles, Plus, Minus, Heart, Share2, Truck, ShieldCheck, Undo2, ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { ArrowLeft, ShoppingCart, Sparkles, Plus, Minus, Heart, Share2, Truck, ShieldCheck, Undo2, ChevronDown, ChevronUp, Info, Flame } from 'lucide-react'
 import { ProductReviews } from '@/components/UI/ProductReviews'
 import { getActivePrice } from '@/utils/price'
 
@@ -25,7 +25,64 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
   const [qty, setQty] = useState(1)
   const [status, setStatus] = useState('')
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
-  const [activeImageUrl, setActiveImageUrl] = useState<string>('')
+  const [bestSellingProducts, setBestSellingProducts] = useState<Product[]>([])
+  const [activeImageUrl, setActiveImageUrl] = useState<string>(
+    product.images?.[0] || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600'
+  )
+
+  // Flash Sale Countdown Timer State & Logic
+  const [timeLeft, setTimeLeft] = useState<{
+    days: number
+    hours: number
+    minutes: number
+    seconds: number
+    status: 'active' | 'upcoming' | 'ended' | null
+  }>({ days: 0, hours: 0, minutes: 0, seconds: 0, status: null })
+
+  useEffect(() => {
+    if (!product.salePrice || (!product.saleStartDate && !product.saleEndDate)) {
+      setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, status: null })
+      return
+    }
+
+    const calculateTime = () => {
+      const now = new Date().getTime()
+      const start = product.saleStartDate ? new Date(product.saleStartDate).getTime() : 0
+      const end = product.saleEndDate ? new Date(product.saleEndDate).getTime() : 0
+
+      if (end && now > end) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, status: 'ended' })
+        return
+      }
+
+      if (start && now < start) {
+        const diff = start - now
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+        setTimeLeft({ days, hours, minutes, seconds, status: 'upcoming' })
+        return
+      }
+
+      if (end) {
+        const diff = end - now
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+        setTimeLeft({ days, hours, minutes, seconds, status: 'active' })
+        return
+      }
+
+      setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, status: null })
+    }
+
+    calculateTime()
+    const timer = setInterval(calculateTime, 1000)
+
+    return () => clearInterval(timer)
+  }, [product])
   
   // Accordion & Image Zoom States
   const [openSection, setOpenSection] = useState<string | null>('desc')
@@ -62,21 +119,29 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
           }
         }
         
-        const filtered = list
-          .map((item: any) => ({
-            ...item,
-            id: String(item.id || item._id)
-          }))
+        const normalizedList = list.map((item: any) => ({
+          ...item,
+          id: String(item.id || item._id)
+        }))
+
+        // 1. Similar products (same category)
+        const currentCat = (product as any).category || (product as any).categoryId?.name || '';
+        const similar = normalizedList
           .filter((p: any) => {
-            const currentCat = (product as any).category || (product as any).categoryId?.name || '';
             const pCat = p.category || p.categoryId?.name || '';
             return currentCat && pCat && currentCat.toLowerCase() === pCat.toLowerCase() && String(p.id) !== String(product.id);
           })
           .slice(0, 4)
-          
-        setRelatedProducts(filtered)
+        setRelatedProducts(similar)
+
+        // 2. Best selling products (sorted by soldCount desc)
+        const bestSelling = normalizedList
+          .filter((p: any) => String(p.id) !== String(product.id))
+          .sort((a: any, b: any) => (b.soldCount || 0) - (a.soldCount || 0))
+          .slice(0, 4)
+        setBestSellingProducts(bestSelling)
       })
-      .catch((err) => console.error('Failed to load related products:', err))
+      .catch((err) => console.error('Failed to load related & best selling products:', err))
   }, [product])
 
   const imageUrl = (product as any).images?.[0] || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600'
@@ -218,6 +283,49 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
               )}
             </div>
 
+            {/* Flash Sale Countdown Timer */}
+            {timeLeft.status && timeLeft.status !== 'ended' && (
+              <div className="mt-3 flex items-center gap-3 bg-gradient-to-r from-red-500/10 to-orange-500/5 border border-red-500/20 rounded-2xl p-3.5 shadow-3xs animate-in fade-in duration-300">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Flame className="h-4.5 w-4.5 text-red-600 animate-bounce" />
+                  <span className="text-[11px] font-black uppercase tracking-wider text-red-700">
+                    {timeLeft.status === 'active' ? 'Flash Sale' : 'Sắp diễn ra'}
+                  </span>
+                </div>
+                
+                <div className="h-4 w-px bg-red-500/20 hidden sm:block" />
+
+                <div className="flex flex-wrap items-center gap-1 text-[11px] font-bold text-stone-600">
+                  <span>{timeLeft.status === 'active' ? 'Kết thúc sau:' : 'Bắt đầu sau:'}</span>
+                  
+                  <div className="flex items-center gap-1 ml-1 text-white">
+                    {timeLeft.days > 0 && (
+                      <>
+                        <span className="bg-red-600 px-2 py-0.5 rounded-md font-black min-w-[20px] text-center shadow-3xs">
+                          {timeLeft.days}
+                        </span>
+                        <span className="text-red-700 font-extrabold text-[10px] mr-1">ngày</span>
+                      </>
+                    )}
+                    
+                    <span className="bg-red-600 px-2 py-0.5 rounded-md font-black min-w-[20px] text-center shadow-3xs">
+                      {String(timeLeft.hours).padStart(2, '0')}
+                    </span>
+                    <span className="text-red-600 font-black">:</span>
+                    
+                    <span className="bg-red-600 px-2 py-0.5 rounded-md font-black min-w-[20px] text-center shadow-3xs">
+                      {String(timeLeft.minutes).padStart(2, '0')}
+                    </span>
+                    <span className="text-red-600 font-black">:</span>
+                    
+                    <span className="bg-red-600 px-2 py-0.5 rounded-md font-black min-w-[20px] text-center shadow-3xs">
+                      {String(timeLeft.seconds).padStart(2, '0')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Trust Assurances Badges (Shopee/TikTok Shop style) */}
             <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5 border-b border-stone-100 pb-5">
               <div className="flex items-center gap-2.5 text-stone-600">
@@ -287,30 +395,40 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
               </div>
             </div>
 
-            {/* Stock status */}
-            <div className="mt-6 flex items-center gap-3 border-t border-stone-100 pt-6">
-              <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Trạng thái kho:</span>
-              <div className="flex items-center gap-1.5">
-                <span className={`h-2.5 w-2.5 rounded-full animate-pulse ${
-                  stockQty === 0 
-                    ? 'bg-red-650'
-                    : isLowStock 
-                      ? 'bg-amber-500'
-                      : 'bg-emerald-650'
-                }`} />
-                <span className={`text-xs font-bold ${
-                  stockQty === 0 
-                    ? 'text-red-700'
-                    : isLowStock 
-                      ? 'text-amber-800'
-                      : 'text-emerald-700'
-                }`}>
-                  {stockQty === 0 
-                    ? 'Hết hàng' 
-                    : isLowStock 
-                      ? `Sắp hết hàng (Chỉ còn ${stockQty} sản phẩm)` 
-                      : `Còn hàng (${stockQty} sản phẩm)`
-                  }
+            {/* Stock status & Sold Count */}
+            <div className="mt-6 flex flex-wrap items-center gap-y-3 gap-x-6 border-t border-stone-100 pt-6">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Kho hàng:</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`h-2.5 w-2.5 rounded-full animate-pulse ${
+                    stockQty === 0 
+                      ? 'bg-red-650'
+                      : isLowStock 
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-650'
+                  }`} />
+                  <span className={`text-xs font-bold ${
+                    stockQty === 0 
+                      ? 'text-red-700'
+                      : isLowStock 
+                        ? 'text-amber-800'
+                        : 'text-emerald-700'
+                  }`}>
+                    {stockQty === 0 
+                      ? 'Hết hàng' 
+                      : isLowStock 
+                        ? `Còn lại ${stockQty} sản phẩm` 
+                        : `Còn hàng (${stockQty} sản phẩm)`
+                    }
+                  </span>
+                </div>
+              </div>
+
+              {/* Sold Count */}
+              <div className="flex items-center gap-2 border-l border-stone-200 pl-6">
+                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Đã bán:</span>
+                <span className="text-xs font-black text-stone-850">
+                  {product.soldCount || 0} sản phẩm
                 </span>
               </div>
             </div>
@@ -338,6 +456,34 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
                 </button>
               </div>
             </div>
+
+            {/* Shop Owner Info Card */}
+            {product.createdBy && (
+              <div className="mt-6 flex items-center justify-between border border-stone-200/60 bg-stone-50/40 rounded-2xl p-4 shadow-3xs">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-amber-100/85 flex items-center justify-center text-amber-900 font-black text-sm shadow-xs border border-amber-200/40">
+                    {(product.createdBy?.fullName || 'S').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-stone-400 font-extrabold uppercase tracking-wider">Cửa hàng</p>
+                    <p className="text-sm font-black text-stone-850">
+                      {product.createdBy?.fullName || 'Chủ cửa hàng'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    const shopName = product.createdBy?.fullName || 'store';
+                    if (typeof window !== 'undefined') {
+                      window.location.href = `/store/${encodeURIComponent(shopName.toLowerCase())}`
+                    }
+                  }}
+                  className="px-4 py-2 border border-amber-800 text-amber-850 hover:bg-amber-850 hover:text-white rounded-xl text-xs font-bold transition-all duration-200 shadow-sm hover:shadow active:scale-95 cursor-pointer focus:outline-none"
+                >
+                  Xem cửa hàng
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Action Row */}
@@ -411,9 +557,48 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
       {/* Related Products Section */}
       {relatedProducts.length > 0 && (
         <div className="mt-16 border-t border-stone-200 pt-12">
-          <h2 className="text-xl font-black text-stone-900 mb-6 tracking-tight">Sản phẩm tương tự</h2>
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-xl font-black text-stone-900 tracking-tight">Sản phẩm tương tự</h2>
+            <button
+              onClick={() => {
+                const currentCat = (product as any).category || (product as any).categoryId?.name || '';
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/products?category=${encodeURIComponent(currentCat)}`
+                }
+              }}
+              className="text-xs font-bold text-amber-800 hover:text-amber-900 transition-colors flex items-center gap-1.5 cursor-pointer focus:outline-none"
+            >
+              Xem tất cả
+              <span className="text-sm font-extrabold">&rarr;</span>
+            </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             {relatedProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Best Selling Products Section */}
+      {bestSellingProducts.length > 0 && (
+        <div className="mt-16 border-t border-stone-200 pt-12">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-xl font-black text-stone-900 tracking-tight">Sản phẩm bán chạy</h2>
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/products`
+                }
+              }}
+              className="text-xs font-bold text-amber-800 hover:text-amber-900 transition-colors flex items-center gap-1.5 cursor-pointer focus:outline-none"
+            >
+              Xem tất cả
+              <span className="text-sm font-extrabold">&rarr;</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {bestSellingProducts.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>

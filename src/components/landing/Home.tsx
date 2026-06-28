@@ -173,17 +173,17 @@ export function Home(props: HomeProps) {
       <section 
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative overflow-hidden border-b border-stone-250 min-h-[560px] bg-stone-950"
+        className="relative overflow-hidden border-b border-stone-250 min-h-[560px] bg-stone-950 flex items-center"
       >
         {/* Slides Container */}
-        <div className="relative w-full h-full min-h-[560px]">
+        <div className="relative w-full">
           {SLIDES.map((slide, idx) => (
             <div 
               key={idx} 
-              className={`absolute inset-0 w-full h-full flex items-center transition-all duration-1000 ease-in-out ${
+              className={`w-full flex items-center transition-all duration-1000 ease-in-out py-16 sm:py-20 lg:py-24 ${
                 idx === activeSlide 
-                  ? 'opacity-100 z-10 pointer-events-auto visible' 
-                  : 'opacity-0 z-0 pointer-events-none invisible'
+                  ? 'relative z-10 opacity-100 pointer-events-auto visible' 
+                  : 'absolute inset-0 w-full h-full opacity-0 z-0 pointer-events-none invisible'
               }`}
             >
               {/* Full-bleed Rich Background Image with Ken Burns Zoom Effect */}
@@ -201,7 +201,7 @@ export function Home(props: HomeProps) {
               <div className="absolute top-1/4 left-1/4 h-72 w-72 rounded-full bg-amber-400/5 blur-3xl animate-pulse" style={{ animationDuration: '12s' }} />
               <div className="absolute bottom-1/4 right-1/4 h-80 w-80 rounded-full bg-orange-400/5 blur-3xl animate-pulse" style={{ animationDuration: '15s' }} />
               
-              <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 py-24 sm:py-32">
+              <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 py-4 sm:py-8 lg:py-12">
                 <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[1fr_1fr]">
                   
                   {/* COLUMN 1: TEXT CONTENT WITH STAGGERED FADE-IN */}
@@ -219,7 +219,7 @@ export function Home(props: HomeProps) {
                     </span>
                     
                     <h1 
-                      className={`text-4xl font-black leading-tight tracking-tight sm:text-5xl lg:text-5xl xl:text-6xl max-w-lg lg:max-w-none bg-clip-text text-transparent bg-gradient-to-r from-white via-stone-100 to-amber-200 transition-all duration-700 ease-out ${
+                      className={`text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-black leading-tight tracking-tight max-w-lg lg:max-w-none bg-clip-text text-transparent bg-gradient-to-r from-white via-stone-100 to-amber-200 transition-all duration-700 ease-out ${
                         idx === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
                       }`}
                       style={{ 
@@ -280,7 +280,7 @@ export function Home(props: HomeProps) {
                   <div className="relative flex w-full min-w-0 justify-center lg:justify-end">
                     {/* Outer Entry Wrapper */}
                     <div 
-                      className={`relative w-full min-w-0 max-w-[500px] transition-all duration-700 ease-out ${
+                      className={`relative w-full min-w-0 max-w-[280px] sm:max-w-[400px] lg:max-w-[480px] xl:max-w-[500px] transition-all duration-700 ease-out ${
                         idx === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
                       }`}
                       style={{ 

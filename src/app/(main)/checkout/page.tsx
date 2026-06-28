@@ -29,10 +29,6 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // VN Provinces Data
-  const [provincesData, setProvincesData] = useState<Province[]>([])
-  const [selectedProvinceObj, setSelectedProvinceObj] = useState<Province | null>(null)
-
   // Form State
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -46,7 +42,7 @@ export default function CheckoutPage() {
 
   // Saved addresses
   const [savedAddresses, setSavedAddresses] = useState<any[]>([])
-  const [selectedAddrId, setSelectedAddrId] = useState<string>('manual')
+  const [selectedAddrId, setSelectedAddrId] = useState<string>('')
 
   // Coupon State
   const [couponCode, setCouponCode] = useState('')
@@ -62,12 +58,9 @@ export default function CheckoutPage() {
       router.push('/login?redirect=/checkout')
     } else {
       setFullName(user.name || '')
+      setPhone(user.phone || '')
+      setAddress(user.address || '')
     }
-
-    fetch('https://provinces.open-api.vn/api/v2/?depth=2')
-      .then(res => res.json())
-      .then(data => setProvincesData(data))
-      .catch(err => console.error('Failed to load provinces', err))
   }, [user, router])
 
   useEffect(() => {
@@ -76,7 +69,7 @@ export default function CheckoutPage() {
         .then((data: any) => {
           if (Array.isArray(data)) {
             setSavedAddresses(data)
-            const defAddr = data.find((a: any) => a.isDefault)
+            const defAddr = data.find((a: any) => a.isDefault) || data[0]
             if (defAddr) {
               setSelectedAddrId(String(defAddr.addressId))
               setFullName(defAddr.fullName)
@@ -94,25 +87,15 @@ export default function CheckoutPage() {
 
   const handleAddressChange = (addrId: string) => {
     setSelectedAddrId(addrId)
-    if (addrId === 'manual') {
-      setFullName(user?.name || '')
-      setPhone('')
-      setAddress('')
-      setWard('')
-      setProvince('')
-      setPostalCode('70000')
-      setSelectedProvinceObj(null)
-    } else {
-      const selected = savedAddresses.find((a: any) => String(a.addressId) === addrId)
-      if (selected) {
-        setFullName(selected.fullName)
-        setPhone(selected.phone)
-        setAddress(selected.addressLine)
-        setWard(selected.ward)
-        setProvince(selected.province)
-        if (selected.postalCode) {
-          setPostalCode(selected.postalCode)
-        }
+    const selected = savedAddresses.find((a: any) => String(a.addressId) === addrId)
+    if (selected) {
+      setFullName(selected.fullName)
+      setPhone(selected.phone)
+      setAddress(selected.addressLine)
+      setWard(selected.ward)
+      setProvince(selected.province)
+      if (selected.postalCode) {
+        setPostalCode(selected.postalCode)
       }
     }
   }
@@ -176,6 +159,7 @@ export default function CheckoutPage() {
   const itemsPrice = getItemsPrice()
   const shippingPrice = itemsPrice > 500000 ? 0 : 30000
   const totalPrice = itemsPrice + shippingPrice - discountAmount
+  const hasProfileInfo = savedAddresses.length > 0
 
   // Handle coupon validation
   const handleApplyCoupon = async (e: React.FormEvent) => {
@@ -262,6 +246,29 @@ export default function CheckoutPage() {
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <h1 className="text-2xl font-extrabold text-stone-900 tracking-tight mb-8">Thanh toán</h1>
 
+      {!hasProfileInfo && (
+        <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50/40 p-5 shadow-3xs animate-in fade-in duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-extrabold text-amber-900 uppercase tracking-wide">Yêu cầu thêm địa chỉ nhận hàng</h4>
+                <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                  Tài khoản của bạn chưa có địa chỉ nhận hàng nào được thiết lập. Vui lòng thêm địa chỉ nhận hàng mới trong Sổ địa chỉ của bạn trước khi tiến hành thanh toán.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push('/profile/addresses')}
+              className="inline-flex items-center justify-center rounded-xl bg-amber-800 hover:bg-amber-900 transition-colors text-white px-5 py-2.5 text-xs font-bold shrink-0 shadow-xs cursor-pointer focus:outline-none"
+            >
+              Thêm địa chỉ nhận hàng
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="mb-6 flex items-center gap-2.5 rounded-lg bg-red-50 p-4 text-sm text-red-700 border border-red-200">
           <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
@@ -279,23 +286,26 @@ export default function CheckoutPage() {
               Thông tin nhận hàng
             </h2>
 
-            {savedAddresses.length > 0 && (
-              <div className="mb-6 rounded-xl bg-amber-50/25 border border-amber-200/50 p-4">
-                <label className="block text-xs font-bold text-amber-900 uppercase mb-2">Chọn địa chỉ đã lưu</label>
+            <div className="mb-6 rounded-xl bg-amber-50/25 border border-amber-200/50 p-4">
+              <label className="block text-xs font-bold text-amber-900 uppercase mb-2">Chọn địa chỉ nhận hàng</label>
+              {savedAddresses.length > 0 ? (
                 <select
                   value={selectedAddrId}
                   onChange={(e) => handleAddressChange(e.target.value)}
                   className="block w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 text-stone-850"
                 >
-                  <option value="manual">Nhập địa chỉ mới (Thủ công)</option>
                   {savedAddresses.map((addr) => (
                     <option key={addr.addressId} value={addr.addressId}>
                       [{addr.label}] {addr.fullName} - {addr.phone} ({addr.addressLine}, {addr.ward}, {addr.province}) {addr.isDefault ? '(Mặc định)' : ''}
                     </option>
                   ))}
                 </select>
-              </div>
-            )}
+              ) : (
+                <div className="text-xs text-red-600 font-bold p-1">
+                  Chưa có địa chỉ nào được thiết lập. Vui lòng nhấn nút "Thêm địa chỉ nhận hàng" ở biểu ngữ phía trên để tiếp tục.
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
@@ -303,10 +313,10 @@ export default function CheckoutPage() {
                 <input
                   type="text"
                   required
+                  readOnly
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
                   placeholder="Nguyễn Văn A"
-                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500 cursor-not-allowed focus:outline-none"
                 />
               </div>
 
@@ -315,10 +325,10 @@ export default function CheckoutPage() {
                 <input
                   type="tel"
                   required
+                  readOnly
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
                   placeholder="0912345678"
-                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500 cursor-not-allowed focus:outline-none"
                 />
               </div>
 
@@ -326,86 +336,42 @@ export default function CheckoutPage() {
                 <label className="block text-xs font-semibold text-stone-600 uppercase">Mã bưu điện (Zip)</label>
                 <input
                   type="text"
+                  readOnly
                   value={postalCode}
-                  onChange={(e) => setPostalCode(e.target.value)}
                   placeholder="70000"
-                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500 cursor-not-allowed focus:outline-none"
                 />
               </div>
 
-              {selectedAddrId === 'manual' ? (
-                <>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 uppercase">Tỉnh / Thành phố</label>
-                    <select
-                      required
-                      value={province}
-                      onChange={(e) => {
-                        const pName = e.target.value;
-                        setProvince(pName);
-                        const pObj = provincesData.find(x => x.name === pName);
-                        setSelectedProvinceObj(pObj || null);
-                        setWard('');
-                      }}
-                      className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
-                    >
-                      <option value="">Chọn Tỉnh / Thành phố</option>
-                      {provincesData.map(p => (
-                        <option key={p.code} value={p.name}>{p.name}</option>
-                      ))}
-                    </select>
-                  </div>
+              <div>
+                <label className="block text-xs font-semibold text-stone-600 uppercase">Tỉnh / Thành phố</label>
+                <input
+                  type="text"
+                  disabled
+                  value={province}
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500"
+                />
+              </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 uppercase">Phường / Xã</label>
-                    <select
-                      required
-                      disabled={!selectedProvinceObj}
-                      value={ward}
-                      onChange={(e) => setWard(e.target.value)}
-                      className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 disabled:bg-stone-100"
-                    >
-                      <option value="">Chọn Phường / Xã</option>
-                      {selectedProvinceObj?.wards?.map(w => (
-                        <option key={w.code} value={w.name}>{w.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 uppercase">Tỉnh / Thành phố</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={province}
-                      className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 uppercase">Phường / Xã</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={ward}
-                      className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500"
-                    />
-                  </div>
-                </>
-              )}
+              <div>
+                <label className="block text-xs font-semibold text-stone-600 uppercase">Phường / Xã</label>
+                <input
+                  type="text"
+                  disabled
+                  value={ward}
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500"
+                />
+              </div>
 
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-stone-600 uppercase">Địa chỉ cụ thể</label>
                 <input
                   type="text"
                   required
-                  disabled={selectedAddrId !== 'manual'}
+                  readOnly
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
                   placeholder="Số 12 Đường Nguyễn Huệ"
-                  className={`mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 ${selectedAddrId !== 'manual' ? 'bg-stone-100 text-stone-500' : 'bg-stone-50/50 focus:bg-white'}`}
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500 cursor-not-allowed focus:outline-none"
                 />
               </div>
             </div>
@@ -470,8 +436,8 @@ export default function CheckoutPage() {
           {/* Place Order CTA for mobile */}
           <button
             type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-800 hover:bg-amber-900 transition-colors py-3.5 text-sm font-bold text-white shadow-md focus:outline-none disabled:bg-stone-400"
+            disabled={loading || !hasProfileInfo}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-800 hover:bg-amber-900 transition-colors py-3.5 text-sm font-bold text-white shadow-md focus:outline-none disabled:bg-stone-300 disabled:cursor-not-allowed"
           >
             {loading ? 'Đang xử lý đặt hàng...' : `Đặt hàng & Thanh toán (${totalPrice.toLocaleString('vi-VN')}đ)`}
           </button>

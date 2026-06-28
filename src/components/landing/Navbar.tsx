@@ -76,7 +76,7 @@ export function Navbar() {
     if (noti.metadata?.orderId) {
       router.push(`/orders/${noti.metadata.orderId}`)
     } else {
-      router.push('/profile?tab=notifications')
+      router.push('/profile/notifications')
     }
   }
 
