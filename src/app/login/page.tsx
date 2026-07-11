@@ -17,13 +17,24 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [redirectUrl, setRedirectUrl] = useState('/')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const redirect = params.get('redirect')
+      if (redirect) {
+        setRedirectUrl(redirect)
+      }
+    }
+  }, [])
 
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      router.push('/')
+      router.push(redirectUrl)
     }
-  }, [user, router])
+  }, [user, router, redirectUrl])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +56,7 @@ export default function LoginPage() {
       } else if (userObj.isOwner) {
         router.replace('/owner/dashboard')
       } else {
-        router.replace('/')
+        router.replace(redirectUrl)
       }
       router.refresh()
     } catch (err: any) {

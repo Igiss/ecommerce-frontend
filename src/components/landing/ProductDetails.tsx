@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { getProducts } from '@/lib/api/products.service'
 import { ProductCard } from './ProductCard'
 import type { Product } from '@/types/product'
 import { useCartStore } from '@/store/cart.store'
 import { useWishlistStore } from '@/store/wishlist.store'
 import { useAuthStore } from '@/store/auth.store'
-import { ArrowLeft, ShoppingCart, Sparkles, Plus, Minus, Heart, Share2, Truck, ShieldCheck, Undo2, ChevronDown, ChevronUp, Info, Flame } from 'lucide-react'
+import { ArrowLeft, ShoppingCart, Sparkles, Plus, Minus, Heart, Share2, Truck, ShieldCheck, Undo2, ChevronDown, ChevronUp, Info, Flame, CreditCard } from 'lucide-react'
 import { ProductReviews } from '@/components/UI/ProductReviews'
 import { getActivePrice } from '@/utils/price'
 
@@ -18,7 +19,7 @@ interface ProductDetailsProps {
 }
 
 export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsProps) {
-  const router = import('next/navigation').then(m => m.useRouter).catch(() => null)
+  const router = useRouter()
   const addItem = useCartStore((state) => state.addItem)
   const toggleFavorite = useWishlistStore((state) => state.toggleFavorite)
   const isFavorite = useWishlistStore((state) => state.hasItem(product.id))
@@ -167,6 +168,16 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
     addItem(product, qty)
     setStatus('Đã thêm vào giỏ hàng thành công!')
     setTimeout(() => setStatus(''), 2000)
+  }
+
+  const handleBuyNow = () => {
+    if (qty > stockQty) {
+      setStatus('Số lượng vượt quá tồn kho hiện tại!')
+      setTimeout(() => setStatus(''), 2000)
+      return
+    }
+    addItem(product, qty)
+    router.push('/checkout')
   }
 
   const handleShare = () => {
@@ -526,26 +537,21 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
               <button
                 onClick={handleAddToCart}
                 disabled={stockQty === 0}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-amber-800 hover:bg-amber-900 active:scale-98 transition-all py-3 px-6 text-sm font-bold text-white shadow-md hover:shadow-lg disabled:bg-stone-200 disabled:text-stone-400 cursor-pointer focus:outline-none"
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-amber-800 text-amber-800 hover:bg-amber-50/50 active:scale-98 transition-all py-3 px-6 text-sm font-bold disabled:border-stone-200 disabled:text-stone-400 cursor-pointer focus:outline-none bg-white shadow-sm"
               >
                 <ShoppingCart className="h-4.5 w-4.5" />
                 Thêm vào giỏ hàng
               </button>
 
-              {/* Design in 3D */}
-              {isCustomizable && (
-                <button 
-                  onClick={() => {
-                    if (onCustomize) onCustomize()
-                    else if (typeof window !== 'undefined') window.location.href = `/custom?productId=${product?.id}`
-                  }}
-                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-700 to-amber-900 text-sm font-bold text-white transition-all hover:brightness-110 active:scale-98 shadow-md hover:shadow-lg focus:outline-none cursor-pointer relative overflow-hidden group"
-                >
-                  <span className="absolute inset-0 w-full h-full bg-white/10 block transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
-                  <Sparkles className="h-4.5 w-4.5 text-amber-250 animate-pulse shrink-0" />
-                  Tự thiết kế 3D
-                </button>
-              )}
+              {/* Buy Now */}
+              <button
+                onClick={handleBuyNow}
+                disabled={stockQty === 0}
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-amber-800 hover:bg-amber-900 active:scale-98 transition-all py-3 px-6 text-sm font-bold text-white shadow-md hover:shadow-lg disabled:bg-stone-200 disabled:text-stone-400 cursor-pointer focus:outline-none"
+              >
+                <CreditCard className="h-4.5 w-4.5" />
+                Mua ngay
+              </button>
             </div>
           </div>
         </div>

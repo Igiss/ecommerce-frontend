@@ -5,6 +5,7 @@ import { getMyOrders } from '@/lib/api/orders.service'
 import { ShoppingBag, AlertCircle, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth.store'
+import { OrderDetailModal } from '@/components/UI/OrderDetailModal'
 
 export default function ProfileOrdersPage() {
   const { user } = useAuthStore()
@@ -12,6 +13,8 @@ export default function ProfileOrdersPage() {
   const [ordersLoading, setOrdersLoading] = useState(true)
   const [orders, setOrders] = useState<any[]>([])
   const [ordersError, setOrdersError] = useState('')
+  const [selectedOrderId, setSelectedOrderId] = useState('')
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -131,17 +134,17 @@ export default function ProfileOrdersPage() {
                       <td className="py-3.5 px-5 text-stone-500 text-xs">{dateStr}</td>
                       <td className="py-3.5 px-5">
                         {order.isPaid ? (
-                          <span className="inline-flex rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-700 border border-green-150">
+                          <span className="inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-bold text-green-700 border border-green-150 whitespace-nowrap">
                             Đã thanh toán
                           </span>
                         ) : (
-                          <span className="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700 border border-red-150">
+                          <span className="inline-flex rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700 border border-red-150 whitespace-nowrap">
                             Chưa thanh toán
                           </span>
                         )}
                       </td>
                       <td className="py-3.5 px-5">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${getStatusBadgeClass(order.status)}`}>
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap ${getStatusBadgeClass(order.status)}`}>
                           {getStatusText(order.status)}
                         </span>
                       </td>
@@ -149,13 +152,16 @@ export default function ProfileOrdersPage() {
                         {order.totalPrice.toLocaleString('vi-VN')}đ
                       </td>
                       <td className="py-3.5 px-5 text-center">
-                        <Link
-                          href={`/orders/${order._id || order.id}`}
-                          className="inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 px-2.5 py-1 text-xs font-bold text-stone-700 transition-colors shadow-xs"
+                        <button
+                          onClick={() => {
+                            setSelectedOrderId(order._id || order.id)
+                            setIsDetailModalOpen(true)
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 px-2.5 py-1 text-xs font-bold text-stone-700 transition-colors shadow-xs cursor-pointer"
                         >
                           <Eye className="h-3.5 w-3.5" />
                           Chi tiết
-                        </Link>
+                        </button>
                       </td>
                     </tr>
                   )
@@ -163,6 +169,14 @@ export default function ProfileOrdersPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {isDetailModalOpen && selectedOrderId && (
+          <OrderDetailModal
+            orderId={selectedOrderId}
+            isOpen={isDetailModalOpen}
+            onClose={() => setIsDetailModalOpen(false)}
+            onOrderUpdated={fetchOrdersList}
+          />
         )}
       </div>
     </div>

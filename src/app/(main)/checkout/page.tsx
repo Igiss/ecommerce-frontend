@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { useCartStore } from '@/store/cart.store'
 import { createOrder, createVNPayUrl } from '@/lib/api/orders.service'
-import { validateCoupon } from '@/lib/api/coupons.service'
+import { validateCoupon, getActiveCoupons } from '@/lib/api/coupons.service'
 import { getAddresses } from '@/lib/api/address.service'
 import { AlertCircle, Ticket, CreditCard, MapPin, ShieldCheck } from 'lucide-react'
 
@@ -22,7 +22,7 @@ interface Ward {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { user } = useAuthStore()
+  const { user, initialized } = useAuthStore()
   const { items, getItemsPrice, clearCart } = useCartStore()
 
   const [mounted, setMounted] = useState(false)
@@ -50,18 +50,22 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [discountAmount, setDiscountAmount] = useState(0)
+  const [activeCoupons, setActiveCoupons] = useState<any[]>([])
+  const [selectedCouponCode, setSelectedCouponCode] = useState('')
 
   // Redirect if not logged in or cart is empty
   useEffect(() => {
     setMounted(true)
-    if (!user) {
-      router.push('/login?redirect=/checkout')
-    } else {
-      setFullName(user.name || '')
-      setPhone(user.phone || '')
-      setAddress(user.address || '')
+    if (initialized) {
+      if (!user) {
+        router.push('/login?redirect=/checkout')
+      } else {
+        setFullName(fullName || user.name || '')
+        setPhone(phone || user.phone || '')
+        setAddress(address || user.address || '')
+      }
     }
-  }, [user, router])
+  }, [user, initialized, router])
 
   useEffect(() => {
     if (user) {
@@ -82,6 +86,12 @@ export default function CheckoutPage() {
           }
         })
         .catch((err) => console.error('Failed to load saved addresses:', err))
+
+      getActiveCoupons()
+        .then((data: any) => {
+          setActiveCoupons(Array.isArray(data) ? data : [])
+        })
+        .catch((err) => console.error('Failed to load active coupons:', err))
     }
   }, [user])
 
@@ -141,6 +151,14 @@ export default function CheckoutPage() {
     )
   }
 
+  if (!mounted || !initialized || !user) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-800 border-t-transparent"></div>
+      </div>
+    )
+  }
+
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
@@ -160,19 +178,18 @@ export default function CheckoutPage() {
   const shippingPrice = itemsPrice > 500000 ? 0 : 30000
   const totalPrice = itemsPrice + shippingPrice - discountAmount
   const hasProfileInfo = savedAddresses.length > 0
+  const eligibleCoupons = activeCoupons.filter((c) => itemsPrice >= c.minOrderValue)
 
-  // Handle coupon validation
-  const handleApplyCoupon = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Handle coupon validation by code string
+  const applyCouponByCode = async (codeToApply: string) => {
     setCouponError('')
     setAppliedCoupon(null)
     setDiscountAmount(0)
 
-    const rawCode = couponCode.trim().toUpperCase()
+    const rawCode = codeToApply.trim().toUpperCase()
     if (!rawCode) return
 
     setCouponLoading(true)
-
     try {
       const result = await validateCoupon(rawCode, itemsPrice)
       setAppliedCoupon({
@@ -180,11 +197,19 @@ export default function CheckoutPage() {
         code: rawCode
       })
       setCouponCode(rawCode)
+      setSelectedCouponCode(rawCode)
       setDiscountAmount(result.actualDiscount || result.discountAmount || 0)
     } catch (err: any) {
       setCouponError(err?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.')
+    } finally {
+      setCouponLoading(false)
     }
-    setCouponLoading(false)
+  }
+
+  // Handle coupon validation from form submit
+  const handleApplyCoupon = (e: React.FormEvent) => {
+    e.preventDefault()
+    applyCouponByCode(couponCode)
   }
 
   // Handle Order Submit
@@ -452,23 +477,69 @@ export default function CheckoutPage() {
               Mã giảm giá (Coupon)
             </h3>
 
-            <form onSubmit={handleApplyCoupon} className="flex gap-2">
-              <input
-                type="text"
-                placeholder="C_12345_SALE10"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value)}
-                disabled={couponLoading || appliedCoupon}
-                className="flex-1 rounded-lg border border-stone-300 px-3 py-1.5 text-sm uppercase placeholder:text-stone-400 focus:border-amber-600 focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={couponLoading || !couponCode.trim()}
-                className="rounded-lg bg-stone-900 hover:bg-stone-800 transition-colors text-white px-4 py-1.5 text-xs font-bold disabled:bg-stone-200 disabled:text-stone-400"
-              >
-                {couponLoading ? 'Đang xét...' : appliedCoupon ? 'Áp dụng' : 'Áp dụng'}
-              </button>
-            </form>
+            {activeCoupons.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5">Chọn từ kho voucher</label>
+                {eligibleCoupons.length > 0 ? (
+                  <select
+                    value={selectedCouponCode}
+                    onChange={(e) => {
+                      const code = e.target.value
+                      setSelectedCouponCode(code)
+                      setCouponCode(code)
+                      if (code) {
+                        applyCouponByCode(code)
+                      } else {
+                        setAppliedCoupon(null)
+                        setDiscountAmount(0)
+                        setCouponCode('')
+                      }
+                    }}
+                    disabled={couponLoading || appliedCoupon}
+                    className="block w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold focus:border-amber-600 focus:outline-none text-stone-850 cursor-pointer"
+                  >
+                    <option value="">-- Chọn voucher của bạn --</option>
+                    {eligibleCoupons.map((c) => {
+                      const discText = c.discountType === 'percentage' 
+                        ? `${c.discountAmount}%` 
+                        : `${(c.discountAmount / 1000)}k`
+                      return (
+                        <option key={c._id} value={c.code}>
+                          {c.code} (Giảm {discText} - Đơn từ {c.minOrderValue.toLocaleString('vi-VN')}đ)
+                        </option>
+                      )
+                    })}
+                  </select>
+                ) : (
+                  <div className="text-[11px] text-stone-400 bg-stone-50 border border-stone-150 p-2.5 rounded-lg font-medium leading-relaxed">
+                    Không có voucher nào đủ điều kiện cho đơn hàng này.
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              {activeCoupons.length > 0 && (
+                <label className="block text-[10px] font-bold text-stone-500 uppercase">Hoặc nhập thủ công</label>
+              )}
+              <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Nhập mã giảm giá..."
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  disabled={couponLoading || appliedCoupon}
+                  className="flex-1 rounded-lg border border-stone-300 px-3 py-1.5 text-sm uppercase placeholder:text-stone-400 focus:border-amber-600 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={couponLoading || !couponCode.trim() || appliedCoupon}
+                  className="rounded-lg bg-stone-900 hover:bg-stone-800 transition-colors text-white px-4 py-1.5 text-xs font-bold disabled:bg-stone-200 disabled:text-stone-400 cursor-pointer"
+                >
+                  {couponLoading ? 'Đang xét...' : 'Áp dụng'}
+                </button>
+              </form>
+            </div>
 
             {couponError && <p className="text-xs text-red-600 mt-2 font-medium">{couponError}</p>}
 
@@ -481,8 +552,9 @@ export default function CheckoutPage() {
                     setAppliedCoupon(null)
                     setDiscountAmount(0)
                     setCouponCode('')
+                    setSelectedCouponCode('')
                   }}
-                  className="text-green-700 hover:text-green-900 underline font-semibold"
+                  className="text-green-700 hover:text-green-900 underline font-semibold cursor-pointer"
                 >
                   Gỡ bỏ
                 </button>
