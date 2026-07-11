@@ -248,7 +248,6 @@ export default function CheckoutPage() {
         // Retrieve VNPay sandbox redirect link
         const vnpayRes = await createVNPayUrl(orderId)
         if (vnpayRes && vnpayRes.paymentUrl) {
-          clearCart()
           window.location.href = vnpayRes.paymentUrl
         } else {
           setError('Không thể tạo liên kết thanh toán VNPay. Hãy kiểm tra lại sau.')

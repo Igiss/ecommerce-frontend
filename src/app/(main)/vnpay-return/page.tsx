@@ -4,12 +4,14 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, XCircle, AlertCircle, ShoppingBag, ArrowRight } from 'lucide-react'
+import { useCartStore } from '@/store/cart.store'
 
 function VNPayReturnContent() {
   const searchParams = useSearchParams()
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null)
   const [orderId, setOrderId] = useState<string>('')
   const [responseMsg, setResponseMsg] = useState('')
+  const clearCart = useCartStore((state) => state.clearCart)
 
   useEffect(() => {
     const status = searchParams.get('status')
@@ -20,6 +22,7 @@ function VNPayReturnContent() {
 
     if (status === 'success' || responseCode === '00') {
       setIsSuccess(true)
+      clearCart()
     } else {
       setIsSuccess(false)
       // Extract error details if any
@@ -38,7 +41,7 @@ function VNPayReturnContent() {
           break;
       }
     }
-  }, [searchParams])
+  }, [searchParams, clearCart])
 
   if (isSuccess === null) {
     return (
