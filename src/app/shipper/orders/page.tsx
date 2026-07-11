@@ -109,7 +109,11 @@ export default function ShipperOrdersPage() {
                 <div className="bg-stone-50 rounded-xl p-3 text-sm">
                   <div className="flex gap-2">
                     <MapPin className="h-4 w-4 text-stone-400 shrink-0 mt-0.5" />
-                    <span className="font-medium text-stone-700">{order.shippingAddress?.fullAddress}</span>
+                    <span className="font-medium text-stone-700">
+                      {order.shippingAddress?.address
+                        ? `${order.shippingAddress.address}, ${order.shippingAddress.ward}, ${order.shippingAddress.province}`
+                        : order.shippingAddress?.fullAddress || 'Chưa cập nhật địa chỉ'}
+                    </span>
                   </div>
                 </div>
               </div>

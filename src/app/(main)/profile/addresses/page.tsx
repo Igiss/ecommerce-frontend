@@ -125,7 +125,7 @@ export default function ProfileAddressesPage() {
 
     try {
       if (editingAddress) {
-        await updateAddress(editingAddress.addressId, payload)
+        await updateAddress(editingAddress.id || editingAddress.addressId, payload)
       } else {
         await createAddress(payload)
       }
@@ -199,7 +199,7 @@ export default function ProfileAddressesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {addresses.map((addr) => (
               <div
-                key={addr.addressId}
+                key={addr.id || addr.addressId}
                 className={`relative rounded-2xl border p-5 shadow-xs bg-white transition-all flex flex-col justify-between hover:shadow-md ${
                   addr.isDefault 
                     ? 'border-amber-800/60 bg-amber-500/2.5' 
@@ -227,7 +227,7 @@ export default function ProfileAddressesPage() {
                 <div className="mt-5 pt-3 border-t border-stone-100/60 flex items-center justify-between gap-4">
                   {!addr.isDefault ? (
                     <button
-                      onClick={() => handleSetDefaultAddress(addr.addressId)}
+                      onClick={() => handleSetDefaultAddress(addr.id || addr.addressId)}
                       className="text-[11px] font-bold text-amber-800 hover:text-amber-955 transition-colors cursor-pointer"
                     >
                       Đặt làm mặc định
@@ -245,7 +245,7 @@ export default function ProfileAddressesPage() {
                       <Edit2 className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDeleteAddress(addr.addressId)}
+                      onClick={() => handleDeleteAddress(addr.id || addr.addressId)}
                       className="p-2 text-stone-400 hover:text-red-650 transition-colors cursor-pointer"
                       title="Xóa địa chỉ"
                     >

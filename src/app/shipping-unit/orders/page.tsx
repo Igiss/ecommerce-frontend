@@ -118,7 +118,7 @@ export default function ShippingUnitOrdersPage() {
                       <div className="text-xs text-stone-500">{order.shippingAddress?.phone}</div>
                     </td>
                     <td className="px-6 py-4 font-medium text-amber-900">
-                      {formatCurrency(order.finalAmount)}
+                      {formatCurrency(order.totalAmount || 0)}
                     </td>
                     <td className="px-6 py-4">
                       {getStatusBadge(order.orderStatus)}
@@ -176,7 +176,11 @@ export default function ShippingUnitOrdersPage() {
                   </div>
                   <div className="col-span-2">
                     <span className="text-stone-500 block mb-1">Địa chỉ giao</span>
-                    <span className="font-medium text-stone-900">{selectedOrder.shippingAddress?.fullAddress}</span>
+                    <span className="font-medium text-stone-900">
+                      {selectedOrder.shippingAddress?.address
+                        ? `${selectedOrder.shippingAddress.address}, ${selectedOrder.shippingAddress.ward}, ${selectedOrder.shippingAddress.province}`
+                        : selectedOrder.shippingAddress?.fullAddress || 'Chưa cập nhật địa chỉ'}
+                    </span>
                   </div>
                 </div>
               </div>

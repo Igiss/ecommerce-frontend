@@ -2,6 +2,7 @@ import { apiClient } from "./client"
 
 export interface UserAddress {
   _id: string
+  id?: number
   addressId: number
   userId: string
   label: string

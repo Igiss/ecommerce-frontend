@@ -75,7 +75,7 @@ export default function CheckoutPage() {
             setSavedAddresses(data)
             const defAddr = data.find((a: any) => a.isDefault) || data[0]
             if (defAddr) {
-              setSelectedAddrId(String(defAddr.addressId))
+              setSelectedAddrId(String(defAddr.id || defAddr.addressId))
               setFullName(defAddr.fullName)
               setPhone(defAddr.phone)
               setAddress(defAddr.addressLine)
@@ -97,7 +97,7 @@ export default function CheckoutPage() {
 
   const handleAddressChange = (addrId: string) => {
     setSelectedAddrId(addrId)
-    const selected = savedAddresses.find((a: any) => String(a.addressId) === addrId)
+    const selected = savedAddresses.find((a: any) => String(a.id || a.addressId) === addrId)
     if (selected) {
       setFullName(selected.fullName)
       setPhone(selected.phone)
@@ -244,19 +244,18 @@ export default function CheckoutPage() {
       const createdOrder = await createOrder(orderData)
       const orderId = createdOrder._id || createdOrder.id
 
-      // Clear Shopping Cart store state
-      clearCart()
-
       if (paymentMethod === 'VNPay') {
         // Retrieve VNPay sandbox redirect link
         const vnpayRes = await createVNPayUrl(orderId)
         if (vnpayRes && vnpayRes.paymentUrl) {
+          clearCart()
           window.location.href = vnpayRes.paymentUrl
         } else {
           setError('Không thể tạo liên kết thanh toán VNPay. Hãy kiểm tra lại sau.')
         }
       } else {
         // Cash on delivery
+        clearCart()
         setNewOrderId(orderId)
         setIsSuccess(true)
       }
@@ -320,7 +319,7 @@ export default function CheckoutPage() {
                   className="block w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 text-stone-850"
                 >
                   {savedAddresses.map((addr) => (
-                    <option key={addr.addressId} value={addr.addressId}>
+                    <option key={addr.id || addr.addressId} value={addr.id || addr.addressId}>
                       [{addr.label}] {addr.fullName} - {addr.phone} ({addr.addressLine}, {addr.ward}, {addr.province}) {addr.isDefault ? '(Mặc định)' : ''}
                     </option>
                   ))}
@@ -504,7 +503,7 @@ export default function CheckoutPage() {
                         ? `${c.discountAmount}%` 
                         : `${(c.discountAmount / 1000)}k`
                       return (
-                        <option key={c._id} value={c.code}>
+                        <option key={c._id || c.id || c.code} value={c.code}>
                           {c.code} (Giảm {discText} - Đơn từ {c.minOrderValue.toLocaleString('vi-VN')}đ)
                         </option>
                       )
