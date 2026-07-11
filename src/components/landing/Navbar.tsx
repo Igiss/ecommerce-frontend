@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
@@ -8,7 +8,7 @@ import { useCartStore } from '@/store/cart.store'
 import { useWishlistStore } from '@/store/wishlist.store'
 import { logoutUser } from '@/lib/api/auth.service'
 import { getMyNotifications, markNotificationRead, markAllNotificationsRead } from '@/lib/api/notification.service'
-import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, X, Search, Heart, Store, Bell, Truck, Package } from 'lucide-react'
+import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, X, Search, Heart, Store, Bell, Truck, Package, Ticket, ShoppingBag, MapPin } from 'lucide-react'
 import { SmartSearch } from './SmartSearch'
 
 export function Navbar() {
@@ -25,6 +25,9 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [notifications, setNotifications] = useState<any[]>([])
+  
+  const avatarDropdownRef = useRef<HTMLDivElement>(null)
+  const notiDropdownRef = useRef<HTMLDivElement>(null)
 
   const fetchNotifications = () => {
     if (!user) return
@@ -37,6 +40,22 @@ export function Navbar() {
 
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (avatarDropdownRef.current && !avatarDropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false)
+      }
+      if (notiDropdownRef.current && !notiDropdownRef.current.contains(event.target as Node)) {
+        setNotiDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [])
 
   useEffect(() => {
@@ -76,7 +95,7 @@ export function Navbar() {
     if (noti.metadata?.orderId) {
       router.push(`/orders/${noti.metadata.orderId}`)
     } else {
-      router.push('/profile?tab=notifications')
+      router.push('/profile/notifications')
     }
   }
 
@@ -139,6 +158,14 @@ export function Navbar() {
             >
               Giới thiệu
             </Link>
+            <Link
+              href="/vouchers"
+              className={`text-sm font-medium transition-colors hover:text-amber-700 ${
+                pathname.startsWith('/vouchers') ? 'text-amber-800 font-semibold' : 'text-stone-600'
+              }`}
+            >
+              Kho voucher
+            </Link>
           </nav>
         </div>
 
@@ -159,7 +186,7 @@ export function Navbar() {
 
           {/* Notifications Bell */}
           {mounted && user && (
-            <div className="relative">
+            <div className="relative" ref={notiDropdownRef}>
               <button
                 onClick={() => {
                   setNotiDropdownOpen(!notiDropdownOpen)
@@ -236,7 +263,7 @@ export function Navbar() {
           )}
 
           {/* User Section (Hydration safe) */}
-          <div className="relative">
+          <div className="relative" ref={avatarDropdownRef}>
             {mounted && user ? (
               <>
                 <button
@@ -319,6 +346,22 @@ export function Navbar() {
                     >
                       <User className="h-4 w-4 text-stone-400" />
                       Hồ sơ cá nhân
+                    </Link>
+                    <Link
+                      href="/profile/orders"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-50 hover:text-amber-800 transition-colors"
+                    >
+                      <ShoppingBag className="h-4 w-4 text-stone-400" />
+                      Đơn mua
+                    </Link>
+                    <Link
+                      href="/profile/addresses"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-50 hover:text-amber-800 transition-colors"
+                    >
+                      <MapPin className="h-4 w-4 text-stone-400" />
+                      Sổ địa chỉ
                     </Link>
                     <Link
                       href="/wishlist"
@@ -428,6 +471,35 @@ export function Navbar() {
             >
               Giới thiệu
             </Link>
+            <Link
+              href="/vouchers"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-stone-100 ${
+                pathname.startsWith('/vouchers') ? 'bg-amber-50 text-amber-800' : 'text-stone-700'
+              }`}
+            >
+              Kho voucher
+            </Link>
+            {user && (
+              <>
+                <Link
+                  href="/profile/orders"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100 flex items-center gap-2"
+                >
+                  <ShoppingBag className="h-4.5 w-4.5 text-stone-400" />
+                  Đơn mua
+                </Link>
+                <Link
+                  href="/profile/addresses"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100 flex items-center gap-2"
+                >
+                  <MapPin className="h-4.5 w-4.5 text-stone-400" />
+                  Sổ địa chỉ
+                </Link>
+              </>
+            )}
             {user?.isAdmin && (
               <Link
                 href="/admin/dashboard"

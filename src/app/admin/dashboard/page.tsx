@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getDashboardStats, getRevenueChart, getTopProducts } from '@/lib/api/admin.service'
+import { getDashboardStats, getRevenueChart } from '@/lib/api/admin.service'
+import { getProducts } from '@/lib/api/products.service'
+import type { Product } from '@/types/product'
 import { DollarSign, ShoppingBag, Package, Users, AlertTriangle, ArrowUpRight, Sparkles } from 'lucide-react'
 import { AiReportModal } from '@/components/UI/AiReportModal'
 
@@ -31,63 +33,37 @@ export default function AdminDashboardPage() {
     }
   }
 
+  const [chartPeriod, setChartPeriod] = useState<'7days' | '30days'>('30days')
+
   useEffect(() => {
-    Promise.all([getDashboardStats(), getRevenueChart(), getTopProducts()])
-      .then(([statsRes, chartRes, topRes]) => {
+    setLoading(true)
+    Promise.all([getDashboardStats(), getProducts()])
+      .then(([statsRes, productsData]: [any, any]) => {
         setStats(statsRes)
         
-        // Normalize and pad revenue-chart data (ensures a line is drawn even with sparse database records)
-        const normalizedChart: any[] = []
-        const isMonthly = (chartRes || []).some((item: any) => item._id && !('day' in item._id))
-
-        if (isMonthly) {
-          // Pad last 12 months
-          for (let i = 11; i >= 0; i--) {
-            const d = new Date()
-            d.setMonth(d.getMonth() - i)
-            const m = d.getMonth() + 1
-            const y = d.getFullYear()
-            const dateStr = `${m}/${y}`
-            
-            const match = (chartRes || []).find((item: any) => {
-              if (item._id && typeof item._id === 'object') {
-                return Number(item._id.month) === m && Number(item._id.year) === y
-              }
-              return false
-            })
-
-            normalizedChart.push({
-              date: dateStr,
-              revenue: match ? match.revenue : 0,
-              orders: match ? match.orders : 0
-            })
-          }
-        } else {
-          // Pad last 7 days (default)
-          for (let i = 6; i >= 0; i--) {
-            const d = new Date()
-            d.setDate(d.getDate() - i)
-            const dateStr = `${d.getDate()}/${d.getMonth() + 1}`
-            
-            const match = (chartRes || []).find((item: any) => {
-              if (item._id && typeof item._id === 'object') {
-                return Number(item._id.day) === d.getDate() && Number(item._id.month) === (d.getMonth() + 1)
-              }
-              return false
-            })
-
-            normalizedChart.push({
-              date: dateStr,
-              revenue: match ? match.revenue : 0,
-              orders: match ? match.orders : 0
-            })
-          }
+        // Process top products from products list
+        let pList: Product[] = []
+        if (Array.isArray(productsData)) pList = productsData
+        else if (productsData && typeof productsData === 'object') {
+          if ('items' in productsData && Array.isArray(productsData.items)) pList = productsData.items
+          else if ('products' in productsData && Array.isArray(productsData.products)) pList = productsData.products
         }
-
-        setChartData(normalizedChart)
-        setTopProducts(topRes)
+        
+        const sorted = pList
+          .map((p: any) => ({
+            name: p.name,
+            image: p.images?.[0] || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600',
+            totalSold: p.soldCount || 0,
+            revenue: (p.soldCount || 0) * p.price
+          }))
+          .filter(p => p.totalSold > 0)
+          .sort((a, b) => b.totalSold - a.totalSold)
+          .slice(0, 10)
+        setTopProducts(sorted)
+        setError('')
       })
       .catch((err: any) => {
+        console.error('Failed to load stats:', err)
         const msg = err.message || ''
         if (
           msg.includes('403') || 
@@ -102,6 +78,36 @@ export default function AdminDashboardPage() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  // Fetch chart data separately when chartPeriod changes
+  useEffect(() => {
+    getRevenueChart({ period: chartPeriod })
+      .then((chartRes: any) => {
+        const normalizedChart: any[] = []
+        const daysToPad = chartPeriod === '7days' ? 7 : 30
+        
+        for (let i = daysToPad - 1; i >= 0; i--) {
+          const d = new Date()
+          d.setDate(d.getDate() - i)
+          const dateStr = `${d.getDate()}/${d.getMonth() + 1}`
+          
+          const match = (chartRes || []).find((item: any) => {
+            if (item._id && typeof item._id === 'object') {
+              return Number(item._id.day) === d.getDate() && Number(item._id.month) === (d.getMonth() + 1)
+            }
+            return false
+          })
+
+          normalizedChart.push({
+            date: dateStr,
+            revenue: match ? match.revenue : 0,
+            orders: match ? match.orders : 0
+          })
+        }
+        setChartData(normalizedChart)
+      })
+      .catch((err) => console.error('Failed to fetch chart:', err))
+  }, [chartPeriod])
 
   if (loading) {
     return (
@@ -124,7 +130,7 @@ export default function AdminDashboardPage() {
       </div>
     )
   }
-  const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map(d => d.revenue || 0), 1) : 1
+  const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map(d => d.revenue || 0), 100000) : 100000
 
   // SVG Chart Dimensions
   const svgWidth = 600
@@ -230,7 +236,33 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Revenue Chart - SVG Line Chart */}
         <div className="lg:col-span-8 rounded-2xl border border-stone-200 bg-white p-6 shadow-xs relative">
-          <h3 className="text-sm font-bold text-stone-900 mb-6 uppercase tracking-wider">Doanh thu theo thời gian</h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider">Doanh thu theo thời gian</h3>
+            
+            {/* Period Toggle Group */}
+            <div className="flex gap-1 bg-stone-105 p-1 rounded-xl border border-stone-200 shadow-3xs">
+              <button
+                onClick={() => setChartPeriod('7days')}
+                className={`px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all duration-200 cursor-pointer focus:outline-none ${
+                  chartPeriod === '7days'
+                    ? 'bg-amber-800 text-white shadow-xs'
+                    : 'text-stone-500 hover:text-stone-750'
+                }`}
+              >
+                7 ngày
+              </button>
+              <button
+                onClick={() => setChartPeriod('30days')}
+                className={`px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all duration-200 cursor-pointer focus:outline-none ${
+                  chartPeriod === '30days'
+                    ? 'bg-amber-800 text-white shadow-xs'
+                    : 'text-stone-500 hover:text-stone-750'
+                }`}
+              >
+                30 ngày
+              </button>
+            </div>
+          </div>
           
           {chartData.length === 0 ? (
             <div className="h-60 flex items-center justify-center text-xs text-stone-400">
@@ -393,17 +425,21 @@ export default function AdminDashboardPage() {
                 )}
 
                 {/* X-Axis Labels */}
-                {points.map((p, idx) => (
-                  <text
-                    key={idx}
-                    x={p.x}
-                    y={svgHeight - 15}
-                    textAnchor="middle"
-                    className="text-[9px] fill-stone-400 font-bold"
-                  >
-                    {p.data.date || p.data.month}
-                  </text>
-                ))}
+                {points.map((p, idx) => {
+                  const showLabel = chartPeriod === '7days' ? true : (idx === 0 || idx === points.length - 1 || idx % 5 === 0)
+                  if (!showLabel) return null
+                  return (
+                    <text
+                      key={idx}
+                      x={p.x}
+                      y={svgHeight - 15}
+                      textAnchor="middle"
+                      className="text-[9px] fill-stone-400 font-bold"
+                    >
+                      {p.data.date || p.data.month}
+                    </text>
+                  )
+                })}
 
                 {/* Invisible hover zones */}
                 {points.map((p, idx) => {

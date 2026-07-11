@@ -10,7 +10,7 @@ import {
 import { uploadProductImages } from '@/lib/api/upload.service'
 import { useAuthStore } from '@/store/auth.store'
 import type { Product } from '@/types/product'
-import { Plus, Edit2, Trash2, X, Upload, AlertCircle, Sparkles } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Upload, AlertCircle, Sparkles, Search } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 
 export default function OwnerProductsPage() {
@@ -22,6 +22,23 @@ export default function OwnerProductsPage() {
   // Modal State
   const [isOpen, setIsOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any | null>(null)
+
+  // Search, filter & pagination state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('Tất cả')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageInput, setPageInput] = useState('')
+  const itemsPerPage = 10
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+    setPageInput('1')
+  }, [searchQuery, selectedCategory])
+
+  useEffect(() => {
+    setPageInput(String(currentPage))
+  }, [currentPage])
   
   // Form Fields
   const [name, setName] = useState('')
@@ -63,6 +80,26 @@ export default function OwnerProductsPage() {
     if (!cleaned) return ''
     return cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
   }
+
+  // Filter products by search query and category
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch =
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.description.toLowerCase().includes(searchQuery.toLowerCase())
+
+    const categoryName = (p as any).categoryId?.name || (p as any).category || ''
+    const matchesCategory =
+      selectedCategory === 'Tất cả' ||
+      categoryName.toLowerCase() === selectedCategory.toLowerCase()
+
+    return matchesSearch && matchesCategory
+  })
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
 
   // Fetch product list and filter for this owner
   const fetchProductsList = () => {
@@ -247,6 +284,54 @@ export default function OwnerProductsPage() {
         </div>
       )}
 
+      {/* Filters Row */}
+      {!loading && !error && products.length > 0 && (
+        <div className="flex flex-col md:flex-row gap-4 justify-between bg-white border border-stone-200 rounded-2xl p-4 shadow-3xs mb-2">
+          {/* Search Input */}
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+            <input
+              type="text"
+              placeholder="Tìm tên hoặc mô tả sản phẩm..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-9 py-2 rounded-xl border border-stone-200 text-xs font-semibold text-stone-800 placeholder-stone-400 focus:outline-none focus:border-amber-700 transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-all cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Category Filter Select */}
+          <div className="flex flex-wrap items-center gap-3.5">
+            <div className="flex items-center gap-1.5 text-xs text-stone-500 font-semibold">
+              <span>Lọc danh mục:</span>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-bold text-stone-700 focus:outline-none focus:border-amber-700 cursor-pointer"
+              >
+                <option value="Tất cả">Tất cả danh mục</option>
+                {categoriesList.map((cat) => (
+                  <option key={cat.id || cat._id} value={cat.name}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="text-xs text-stone-550 font-bold md:ml-2">
+              Hiển thị {filteredProducts.length} trên {products.length} sản phẩm
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Product List Table */}
       {loading ? (
         <div className="flex py-12 justify-center">
@@ -255,6 +340,19 @@ export default function OwnerProductsPage() {
       ) : products.length === 0 ? (
         <div className="text-center py-16 border border-stone-200 border-dashed rounded-2xl bg-white">
           <p className="text-stone-550 text-sm">Chưa có sản phẩm nào do shop đăng bán.</p>
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="text-center py-16 border border-stone-200 border-dashed rounded-2xl bg-white">
+          <p className="text-stone-550 text-sm">Không tìm thấy sản phẩm nào khớp với bộ lọc.</p>
+          <button
+            onClick={() => {
+              setSearchQuery('')
+              setSelectedCategory('Tất cả')
+            }}
+            className="mt-4 px-4 py-2 bg-amber-800 hover:bg-amber-900 transition-colors text-white rounded-xl text-xs font-bold shadow-sm active:scale-98 cursor-pointer focus:outline-none"
+          >
+            Xóa bộ lọc
+          </button>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-xs">
@@ -270,7 +368,7 @@ export default function OwnerProductsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {products.map((product) => {
+              {paginatedProducts.map((product) => {
                 const imageUrl = (product as any).images?.[0] || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300'
                 const stockQty = (product as any).stock ?? (product as any).countInStock ?? 0
                 const isLowStock = stockQty < 5
@@ -326,6 +424,85 @@ export default function OwnerProductsPage() {
               })}
             </tbody>
           </table>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-wrap justify-center items-center gap-2 p-4 border-t border-stone-100 bg-stone-50/50">
+              {/* First Page Button */}
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer focus:outline-none"
+                title="Trang đầu"
+              >
+                Đầu
+              </button>
+
+              {/* Previous Page Button */}
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3.5 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer focus:outline-none"
+              >
+                Trước
+              </button>
+
+              {/* Page Numbers */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`h-8 w-8 rounded-xl text-xs font-bold transition-all cursor-pointer focus:outline-none ${
+                    currentPage === page
+                      ? 'bg-amber-800 text-white shadow-xs'
+                      : 'border border-stone-200 bg-white hover:bg-stone-50 text-stone-700'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              {/* Next Page Button */}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3.5 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer focus:outline-none"
+              >
+                Sau
+              </button>
+
+              {/* Last Page Button */}
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer focus:outline-none"
+                title="Trang cuối"
+              >
+                Cuối
+              </button>
+
+              {/* Jump to Page Input */}
+              <div className="flex items-center gap-1.5 ml-2 border-l border-stone-200 pl-4">
+                <span className="text-xs text-stone-500">Đến trang:</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={pageInput}
+                  onChange={(e) => setPageInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const val = parseInt(pageInput, 10)
+                      if (!isNaN(val) && val >= 1 && val <= totalPages) {
+                        setCurrentPage(val)
+                      }
+                    }
+                  }}
+                  className="w-12 h-8 text-center text-xs font-bold border border-stone-200 rounded-xl focus:outline-none focus:border-amber-700"
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 

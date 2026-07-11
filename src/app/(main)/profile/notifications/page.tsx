@@ -60,6 +60,8 @@ export default function ProfileNotificationsPage() {
     }
     if (noti.metadata?.orderId) {
       router.push(`/orders/${noti.metadata.orderId}`)
+    } else {
+      router.push('/profile/notifications')
     }
   }
 
@@ -97,42 +99,48 @@ export default function ProfileNotificationsPage() {
             <p className="text-stone-550 text-sm">Hộp thư thông báo của bạn trống.</p>
           </div>
         ) : (
-          <div className="divide-y divide-stone-100 border border-stone-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+          <div className="flex flex-col gap-4">
             {notifications.map((noti) => (
               <div
                 key={noti._id}
                 onClick={() => handleNotiClick(noti)}
-                className={`p-4 flex gap-4 items-start transition-colors cursor-pointer ${
+                className={`p-5 flex gap-4 items-start transition-all duration-200 cursor-pointer border rounded-2xl shadow-3xs ${
                   !noti.isRead 
-                    ? 'bg-amber-500/5 hover:bg-amber-500/10' 
-                    : 'hover:bg-stone-50/70'
+                    ? 'bg-amber-500/5 hover:bg-amber-500/10 border-amber-200/70 ring-1 ring-amber-200/20' 
+                    : 'bg-white hover:bg-stone-50 border-stone-200/80'
                 }`}
               >
-                <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 border ${
+                <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 border ${
                   !noti.isRead 
                     ? 'bg-amber-100/50 border-amber-200 text-amber-800' 
-                    : 'bg-stone-50 border-stone-100 text-stone-400'
+                    : 'bg-stone-50 border-stone-200 text-stone-400'
                 }`}>
-                  <Bell className="h-4 w-4" />
+                  <Bell className="h-4.5 w-4.5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-4">
-                    <h4 className={`text-xs sm:text-sm ${!noti.isRead ? 'font-extrabold text-stone-900' : 'font-bold text-stone-700'}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <h4 className={`text-xs sm:text-sm tracking-tight ${!noti.isRead ? 'font-extrabold text-stone-900' : 'font-bold text-stone-700'}`}>
                       {noti.title}
                     </h4>
                     {!noti.isRead && (
-                      <span className="inline-block h-2 w-2 rounded-full bg-amber-600 shrink-0" />
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-600 shrink-0 animate-pulse mt-1" />
                     )}
                   </div>
-                  <p className="text-xs text-stone-550 mt-1 leading-relaxed">{noti.message}</p>
-                  <div className="mt-2.5 flex items-center gap-3 text-[10px] text-stone-400">
+                  <p className={`text-xs mt-1.5 leading-relaxed ${!noti.isRead ? 'text-stone-700 font-medium' : 'text-stone-550'}`}>
+                    {noti.message}
+                  </p>
+                  <div className="mt-3.5 flex items-center justify-between text-[10px] text-stone-400">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       {new Date(noti.createdAt).toLocaleDateString('vi-VN')} {new Date(noti.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    {noti.metadata?.orderId && (
+                    {noti.metadata?.orderId ? (
                       <span className="font-extrabold text-amber-800 hover:underline">
                         Chi tiết đơn hàng &rarr;
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-stone-400">
+                        Thông báo hệ thống
                       </span>
                     )}
                   </div>

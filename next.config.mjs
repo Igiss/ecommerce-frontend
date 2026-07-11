@@ -1,4 +1,4 @@
-const apiUrl = (process.env.API_URL || 'http://localhost:3000').replace(/\/$/, '')
+const apiUrl = (process.env.API_URL || 'http://127.0.0.1:3000').replace(/\/$/, '')
 
 const nextConfig = {
   async rewrites() {

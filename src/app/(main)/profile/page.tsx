@@ -252,8 +252,7 @@ export default function ProfileInfoPage() {
   if (!mounted || !user) return null
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs">
-      <div className="max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl bg-white rounded-2xl border border-stone-200 p-6 shadow-xs space-y-6">
         <h2 className="text-base font-bold text-stone-900 flex items-center gap-2">
           <User className="h-5 w-5 text-amber-700" />
           Hồ sơ cá nhân
@@ -489,8 +488,6 @@ export default function ProfileInfoPage() {
             </div>
           </div>
         )}
-
-      </div>
 
       {/* Crop Modal */}
       {isCropModalOpen && (

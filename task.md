@@ -1,0 +1,6 @@
+- `[x]` Thêm kiểm tra profile info (`phone` và `address`) trong `CheckoutPage`
+- `[x]` Hiển thị banner cảnh báo hoàn thiện hồ sơ kèm nút điều hướng đến `/profile`
+- `[x]` Khóa tính năng chỉnh sửa (đặt `readOnly` + style disabled) cho Họ tên, SĐT, Địa chỉ
+- `[x]` Chỉ cho phép lựa chọn Tỉnh/Thành phố và Phường/Xã ở dạng dropdown khi chọn thủ công
+- `[x]` Chạy lệnh build (`npm run build`) để kiểm tra biên dịch
+- `[x]` Cập nhật báo cáo Walkthrough để nghiệm thu

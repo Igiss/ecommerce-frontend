@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { useCartStore } from '@/store/cart.store'
 import { createOrder, createVNPayUrl } from '@/lib/api/orders.service'
-import { validateCoupon } from '@/lib/api/coupons.service'
+import { validateCoupon, getActiveCoupons } from '@/lib/api/coupons.service'
 import { getAddresses } from '@/lib/api/address.service'
 import { AlertCircle, Ticket, CreditCard, MapPin, ShieldCheck } from 'lucide-react'
 
@@ -22,16 +22,12 @@ interface Ward {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { user } = useAuthStore()
+  const { user, initialized } = useAuthStore()
   const { items, getItemsPrice, clearCart } = useCartStore()
 
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  // VN Provinces Data
-  const [provincesData, setProvincesData] = useState<Province[]>([])
-  const [selectedProvinceObj, setSelectedProvinceObj] = useState<Province | null>(null)
 
   // Form State
   const [fullName, setFullName] = useState('')
@@ -46,7 +42,7 @@ export default function CheckoutPage() {
 
   // Saved addresses
   const [savedAddresses, setSavedAddresses] = useState<any[]>([])
-  const [selectedAddrId, setSelectedAddrId] = useState<string>('manual')
+  const [selectedAddrId, setSelectedAddrId] = useState<string>('')
 
   // Coupon State
   const [couponCode, setCouponCode] = useState('')
@@ -54,21 +50,22 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [discountAmount, setDiscountAmount] = useState(0)
+  const [activeCoupons, setActiveCoupons] = useState<any[]>([])
+  const [selectedCouponCode, setSelectedCouponCode] = useState('')
 
   // Redirect if not logged in or cart is empty
   useEffect(() => {
     setMounted(true)
-    if (!user) {
-      router.push('/login?redirect=/checkout')
-    } else {
-      setFullName(user.name || '')
+    if (initialized) {
+      if (!user) {
+        router.push('/login?redirect=/checkout')
+      } else {
+        setFullName(fullName || user.name || '')
+        setPhone(phone || user.phone || '')
+        setAddress(address || user.address || '')
+      }
     }
-
-    fetch('https://provinces.open-api.vn/api/v2/?depth=2')
-      .then(res => res.json())
-      .then(data => setProvincesData(data))
-      .catch(err => console.error('Failed to load provinces', err))
-  }, [user, router])
+  }, [user, initialized, router])
 
   useEffect(() => {
     if (user) {
@@ -76,7 +73,7 @@ export default function CheckoutPage() {
         .then((data: any) => {
           if (Array.isArray(data)) {
             setSavedAddresses(data)
-            const defAddr = data.find((a: any) => a.isDefault)
+            const defAddr = data.find((a: any) => a.isDefault) || data[0]
             if (defAddr) {
               setSelectedAddrId(String(defAddr.addressId))
               setFullName(defAddr.fullName)
@@ -89,30 +86,26 @@ export default function CheckoutPage() {
           }
         })
         .catch((err) => console.error('Failed to load saved addresses:', err))
+
+      getActiveCoupons()
+        .then((data: any) => {
+          setActiveCoupons(Array.isArray(data) ? data : [])
+        })
+        .catch((err) => console.error('Failed to load active coupons:', err))
     }
   }, [user])
 
   const handleAddressChange = (addrId: string) => {
     setSelectedAddrId(addrId)
-    if (addrId === 'manual') {
-      setFullName(user?.name || '')
-      setPhone('')
-      setAddress('')
-      setWard('')
-      setProvince('')
-      setPostalCode('70000')
-      setSelectedProvinceObj(null)
-    } else {
-      const selected = savedAddresses.find((a: any) => String(a.addressId) === addrId)
-      if (selected) {
-        setFullName(selected.fullName)
-        setPhone(selected.phone)
-        setAddress(selected.addressLine)
-        setWard(selected.ward)
-        setProvince(selected.province)
-        if (selected.postalCode) {
-          setPostalCode(selected.postalCode)
-        }
+    const selected = savedAddresses.find((a: any) => String(a.addressId) === addrId)
+    if (selected) {
+      setFullName(selected.fullName)
+      setPhone(selected.phone)
+      setAddress(selected.addressLine)
+      setWard(selected.ward)
+      setProvince(selected.province)
+      if (selected.postalCode) {
+        setPostalCode(selected.postalCode)
       }
     }
   }
@@ -158,6 +151,14 @@ export default function CheckoutPage() {
     )
   }
 
+  if (!mounted || !initialized || !user) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-800 border-t-transparent"></div>
+      </div>
+    )
+  }
+
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
@@ -176,19 +177,19 @@ export default function CheckoutPage() {
   const itemsPrice = getItemsPrice()
   const shippingPrice = itemsPrice > 500000 ? 0 : 30000
   const totalPrice = itemsPrice + shippingPrice - discountAmount
+  const hasProfileInfo = savedAddresses.length > 0
+  const eligibleCoupons = activeCoupons.filter((c) => itemsPrice >= c.minOrderValue)
 
-  // Handle coupon validation
-  const handleApplyCoupon = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Handle coupon validation by code string
+  const applyCouponByCode = async (codeToApply: string) => {
     setCouponError('')
     setAppliedCoupon(null)
     setDiscountAmount(0)
 
-    const rawCode = couponCode.trim().toUpperCase()
+    const rawCode = codeToApply.trim().toUpperCase()
     if (!rawCode) return
 
     setCouponLoading(true)
-
     try {
       const result = await validateCoupon(rawCode, itemsPrice)
       setAppliedCoupon({
@@ -196,11 +197,19 @@ export default function CheckoutPage() {
         code: rawCode
       })
       setCouponCode(rawCode)
+      setSelectedCouponCode(rawCode)
       setDiscountAmount(result.actualDiscount || result.discountAmount || 0)
     } catch (err: any) {
       setCouponError(err?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.')
+    } finally {
+      setCouponLoading(false)
     }
-    setCouponLoading(false)
+  }
+
+  // Handle coupon validation from form submit
+  const handleApplyCoupon = (e: React.FormEvent) => {
+    e.preventDefault()
+    applyCouponByCode(couponCode)
   }
 
   // Handle Order Submit
@@ -262,6 +271,29 @@ export default function CheckoutPage() {
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <h1 className="text-2xl font-extrabold text-stone-900 tracking-tight mb-8">Thanh toán</h1>
 
+      {!hasProfileInfo && (
+        <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50/40 p-5 shadow-3xs animate-in fade-in duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-extrabold text-amber-900 uppercase tracking-wide">Yêu cầu thêm địa chỉ nhận hàng</h4>
+                <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                  Tài khoản của bạn chưa có địa chỉ nhận hàng nào được thiết lập. Vui lòng thêm địa chỉ nhận hàng mới trong Sổ địa chỉ của bạn trước khi tiến hành thanh toán.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push('/profile/addresses')}
+              className="inline-flex items-center justify-center rounded-xl bg-amber-800 hover:bg-amber-900 transition-colors text-white px-5 py-2.5 text-xs font-bold shrink-0 shadow-xs cursor-pointer focus:outline-none"
+            >
+              Thêm địa chỉ nhận hàng
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="mb-6 flex items-center gap-2.5 rounded-lg bg-red-50 p-4 text-sm text-red-700 border border-red-200">
           <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
@@ -279,23 +311,26 @@ export default function CheckoutPage() {
               Thông tin nhận hàng
             </h2>
 
-            {savedAddresses.length > 0 && (
-              <div className="mb-6 rounded-xl bg-amber-50/25 border border-amber-200/50 p-4">
-                <label className="block text-xs font-bold text-amber-900 uppercase mb-2">Chọn địa chỉ đã lưu</label>
+            <div className="mb-6 rounded-xl bg-amber-50/25 border border-amber-200/50 p-4">
+              <label className="block text-xs font-bold text-amber-900 uppercase mb-2">Chọn địa chỉ nhận hàng</label>
+              {savedAddresses.length > 0 ? (
                 <select
                   value={selectedAddrId}
                   onChange={(e) => handleAddressChange(e.target.value)}
                   className="block w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 text-stone-850"
                 >
-                  <option value="manual">Nhập địa chỉ mới (Thủ công)</option>
                   {savedAddresses.map((addr) => (
                     <option key={addr.addressId} value={addr.addressId}>
                       [{addr.label}] {addr.fullName} - {addr.phone} ({addr.addressLine}, {addr.ward}, {addr.province}) {addr.isDefault ? '(Mặc định)' : ''}
                     </option>
                   ))}
                 </select>
-              </div>
-            )}
+              ) : (
+                <div className="text-xs text-red-600 font-bold p-1">
+                  Chưa có địa chỉ nào được thiết lập. Vui lòng nhấn nút "Thêm địa chỉ nhận hàng" ở biểu ngữ phía trên để tiếp tục.
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
@@ -303,10 +338,10 @@ export default function CheckoutPage() {
                 <input
                   type="text"
                   required
+                  readOnly
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
                   placeholder="Nguyễn Văn A"
-                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500 cursor-not-allowed focus:outline-none"
                 />
               </div>
 
@@ -315,10 +350,10 @@ export default function CheckoutPage() {
                 <input
                   type="tel"
                   required
+                  readOnly
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
                   placeholder="0912345678"
-                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500 cursor-not-allowed focus:outline-none"
                 />
               </div>
 
@@ -326,86 +361,42 @@ export default function CheckoutPage() {
                 <label className="block text-xs font-semibold text-stone-600 uppercase">Mã bưu điện (Zip)</label>
                 <input
                   type="text"
+                  readOnly
                   value={postalCode}
-                  onChange={(e) => setPostalCode(e.target.value)}
                   placeholder="70000"
-                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-50/50 px-3 py-2 text-sm focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500 cursor-not-allowed focus:outline-none"
                 />
               </div>
 
-              {selectedAddrId === 'manual' ? (
-                <>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 uppercase">Tỉnh / Thành phố</label>
-                    <select
-                      required
-                      value={province}
-                      onChange={(e) => {
-                        const pName = e.target.value;
-                        setProvince(pName);
-                        const pObj = provincesData.find(x => x.name === pName);
-                        setSelectedProvinceObj(pObj || null);
-                        setWard('');
-                      }}
-                      className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
-                    >
-                      <option value="">Chọn Tỉnh / Thành phố</option>
-                      {provincesData.map(p => (
-                        <option key={p.code} value={p.name}>{p.name}</option>
-                      ))}
-                    </select>
-                  </div>
+              <div>
+                <label className="block text-xs font-semibold text-stone-600 uppercase">Tỉnh / Thành phố</label>
+                <input
+                  type="text"
+                  disabled
+                  value={province}
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500"
+                />
+              </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 uppercase">Phường / Xã</label>
-                    <select
-                      required
-                      disabled={!selectedProvinceObj}
-                      value={ward}
-                      onChange={(e) => setWard(e.target.value)}
-                      className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 disabled:bg-stone-100"
-                    >
-                      <option value="">Chọn Phường / Xã</option>
-                      {selectedProvinceObj?.wards?.map(w => (
-                        <option key={w.code} value={w.name}>{w.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 uppercase">Tỉnh / Thành phố</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={province}
-                      className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 uppercase">Phường / Xã</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={ward}
-                      className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500"
-                    />
-                  </div>
-                </>
-              )}
+              <div>
+                <label className="block text-xs font-semibold text-stone-600 uppercase">Phường / Xã</label>
+                <input
+                  type="text"
+                  disabled
+                  value={ward}
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500"
+                />
+              </div>
 
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-stone-600 uppercase">Địa chỉ cụ thể</label>
                 <input
                   type="text"
                   required
-                  disabled={selectedAddrId !== 'manual'}
+                  readOnly
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
                   placeholder="Số 12 Đường Nguyễn Huệ"
-                  className={`mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 ${selectedAddrId !== 'manual' ? 'bg-stone-100 text-stone-500' : 'bg-stone-50/50 focus:bg-white'}`}
+                  className="mt-1.5 block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-500 cursor-not-allowed focus:outline-none"
                 />
               </div>
             </div>
@@ -470,8 +461,8 @@ export default function CheckoutPage() {
           {/* Place Order CTA for mobile */}
           <button
             type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-800 hover:bg-amber-900 transition-colors py-3.5 text-sm font-bold text-white shadow-md focus:outline-none disabled:bg-stone-400"
+            disabled={loading || !hasProfileInfo}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-800 hover:bg-amber-900 transition-colors py-3.5 text-sm font-bold text-white shadow-md focus:outline-none disabled:bg-stone-300 disabled:cursor-not-allowed"
           >
             {loading ? 'Đang xử lý đặt hàng...' : `Đặt hàng & Thanh toán (${totalPrice.toLocaleString('vi-VN')}đ)`}
           </button>
@@ -486,23 +477,69 @@ export default function CheckoutPage() {
               Mã giảm giá (Coupon)
             </h3>
 
-            <form onSubmit={handleApplyCoupon} className="flex gap-2">
-              <input
-                type="text"
-                placeholder="C_12345_SALE10"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value)}
-                disabled={couponLoading || appliedCoupon}
-                className="flex-1 rounded-lg border border-stone-300 px-3 py-1.5 text-sm uppercase placeholder:text-stone-400 focus:border-amber-600 focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={couponLoading || !couponCode.trim()}
-                className="rounded-lg bg-stone-900 hover:bg-stone-800 transition-colors text-white px-4 py-1.5 text-xs font-bold disabled:bg-stone-200 disabled:text-stone-400"
-              >
-                {couponLoading ? 'Đang xét...' : appliedCoupon ? 'Áp dụng' : 'Áp dụng'}
-              </button>
-            </form>
+            {activeCoupons.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5">Chọn từ kho voucher</label>
+                {eligibleCoupons.length > 0 ? (
+                  <select
+                    value={selectedCouponCode}
+                    onChange={(e) => {
+                      const code = e.target.value
+                      setSelectedCouponCode(code)
+                      setCouponCode(code)
+                      if (code) {
+                        applyCouponByCode(code)
+                      } else {
+                        setAppliedCoupon(null)
+                        setDiscountAmount(0)
+                        setCouponCode('')
+                      }
+                    }}
+                    disabled={couponLoading || appliedCoupon}
+                    className="block w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold focus:border-amber-600 focus:outline-none text-stone-850 cursor-pointer"
+                  >
+                    <option value="">-- Chọn voucher của bạn --</option>
+                    {eligibleCoupons.map((c) => {
+                      const discText = c.discountType === 'percentage' 
+                        ? `${c.discountAmount}%` 
+                        : `${(c.discountAmount / 1000)}k`
+                      return (
+                        <option key={c._id} value={c.code}>
+                          {c.code} (Giảm {discText} - Đơn từ {c.minOrderValue.toLocaleString('vi-VN')}đ)
+                        </option>
+                      )
+                    })}
+                  </select>
+                ) : (
+                  <div className="text-[11px] text-stone-400 bg-stone-50 border border-stone-150 p-2.5 rounded-lg font-medium leading-relaxed">
+                    Không có voucher nào đủ điều kiện cho đơn hàng này.
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              {activeCoupons.length > 0 && (
+                <label className="block text-[10px] font-bold text-stone-500 uppercase">Hoặc nhập thủ công</label>
+              )}
+              <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Nhập mã giảm giá..."
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  disabled={couponLoading || appliedCoupon}
+                  className="flex-1 rounded-lg border border-stone-300 px-3 py-1.5 text-sm uppercase placeholder:text-stone-400 focus:border-amber-600 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={couponLoading || !couponCode.trim() || appliedCoupon}
+                  className="rounded-lg bg-stone-900 hover:bg-stone-800 transition-colors text-white px-4 py-1.5 text-xs font-bold disabled:bg-stone-200 disabled:text-stone-400 cursor-pointer"
+                >
+                  {couponLoading ? 'Đang xét...' : 'Áp dụng'}
+                </button>
+              </form>
+            </div>
 
             {couponError && <p className="text-xs text-red-600 mt-2 font-medium">{couponError}</p>}
 
@@ -515,8 +552,9 @@ export default function CheckoutPage() {
                     setAppliedCoupon(null)
                     setDiscountAmount(0)
                     setCouponCode('')
+                    setSelectedCouponCode('')
                   }}
-                  className="text-green-700 hover:text-green-900 underline font-semibold"
+                  className="text-green-700 hover:text-green-900 underline font-semibold cursor-pointer"
                 >
                   Gỡ bỏ
                 </button>
