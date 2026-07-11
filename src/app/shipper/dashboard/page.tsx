@@ -132,8 +132,8 @@ export default function ShipperDashboardPage() {
                 <div className="bg-stone-50 rounded-xl p-3 border border-stone-100">
                   <p className="text-xs font-bold text-stone-500 uppercase mb-2">Thông tin thu tiền (COD)</p>
                   <p className="text-lg font-black text-amber-800">
-                    {order.paymentMethod === 'cod' && order.paymentStatus === 'unpaid' 
-                      ? `${(order.totalAmount || 0).toLocaleString('vi-VN')}đ` 
+                    {order.paymentMethod?.toUpperCase() === 'COD' && order.paymentStatus?.toLowerCase() === 'unpaid' 
+                      ? `${(order.totalAmount ?? order.totalPrice ?? 0).toLocaleString('vi-VN')}đ` 
                       : '0đ (Đã thanh toán)'}
                   </p>
                 </div>

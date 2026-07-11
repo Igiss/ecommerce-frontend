@@ -96,9 +96,9 @@ export default function ShipperOrdersPage() {
                   </div>
                   <div className="text-right">
                     <div className="font-black text-amber-900 text-lg">
-                      {formatCurrency(order.totalAmount || 0)}
+                      {formatCurrency(order.totalAmount ?? order.totalPrice ?? 0)}
                     </div>
-                    {order.paymentMethod === 'cod' && order.paymentStatus === 'unpaid' ? (
+                    {order.paymentMethod?.toUpperCase() === 'COD' && order.paymentStatus?.toLowerCase() === 'unpaid' ? (
                       <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Thu hộ COD</span>
                     ) : (
                       <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">Đã thanh toán</span>
