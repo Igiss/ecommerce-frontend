@@ -30,16 +30,16 @@ export default function AboutPage() {
                 Câu chuyện thương hiệu
               </span>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-stone-900 tracking-tight leading-tight">
-                Về CupShop - <br />
+                Về CozyHome - <br />
                 <span className="bg-gradient-to-r from-amber-800 via-amber-700 to-orange-600 bg-clip-text text-transparent">
                   Nghệ thuật & Công nghệ
                 </span>
               </h1>
               <p className="text-base sm:text-lg text-stone-650 leading-relaxed font-medium">
-                Tại CupShop, chúng tôi định nghĩa lại trải nghiệm thưởng trà và cà phê của bạn. Một chiếc cốc không đơn thuần là vật dụng, mà là một tác phẩm nghệ thuật thu nhỏ phản ánh trọn vẹn phong cách cá nhân của bạn.
+                Tại CozyHome, chúng tôi định nghĩa lại không gian sống của bạn. Một món đồ gia dụng không đơn thuần là vật dụng, mà là một phần mảnh ghép phản ánh trọn vẹn sự tinh tế và phong cách sống của gia đình bạn.
               </p>
               <p className="text-sm text-stone-500 leading-relaxed">
-                Bằng việc kết hợp giữa tinh hoa sản xuất truyền thống với công nghệ thiết kế 3D trực quan thế hệ mới, CupShop mang đến một nền tảng thương mại điện tử độc đáo, nơi bạn vừa có thể lựa chọn những sản phẩm thiết kế sẵn đầy cá tính, vừa có thể tự do biến ý tưởng cá nhân thành hiện thực.
+                Bằng việc cung cấp các dòng sản phẩm gia dụng thông minh thế hệ mới, CozyHome mang đến một nền tảng thương mại điện tử độc đáo, nơi bạn có thể lựa chọn những sản phẩm gia dụng hiện đại, chất lượng và phù hợp nhất cho tổ ấm của mình.
               </p>
               
               <div className="flex flex-wrap gap-4 pt-2">
@@ -235,7 +235,7 @@ export default function AboutPage() {
                     <span className="inline-block text-[9px] font-extrabold text-amber-800 uppercase tracking-widest bg-amber-50 px-2.5 py-1 rounded-md">Năm 2024</span>
                     <h4 className="text-base font-extrabold text-stone-900">Khởi sự một ý tưởng sáng tạo</h4>
                     <p className="text-xs text-stone-550 leading-relaxed">
-                      Nhận thấy nhu cầu quà tặng cá nhân hóa bùng nổ nhưng thiếu giải pháp thiết kế tương tác thực tế, đội ngũ CupShop bắt tay nghiên cứu mô hình kinh doanh ly cốc in ấn tùy biến chất lượng cao.
+                      Nhận thấy nhu cầu sở hữu các sản phẩm gia dụng hiện đại, tinh tế của các gia đình trẻ ngày càng cao, đội ngũ CozyHome bắt đầu nghiên cứu và xây dựng mô hình kinh doanh đồ gia dụng thông minh chất lượng cao.
                     </p>
                   </div>
                 </div>
@@ -297,13 +297,13 @@ export default function AboutPage() {
           {/* Text Left */}
           <div className="lg:col-span-6 space-y-6">
             <span className="text-xs font-extrabold text-amber-800 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full border border-amber-200/40">
-              Cam kết của CupShop
+              Cam kết của CozyHome
             </span>
             <h2 className="text-3xl sm:text-4xl font-black text-stone-900 tracking-tight leading-tight">
               An tâm mua sắm, trọn vẹn niềm tin
             </h2>
             <p className="text-sm text-stone-500 leading-relaxed">
-              Chúng tôi hiểu rằng mỗi chiếc ly cốc in ấn theo yêu cầu là một món quà đặc biệt gửi gắm những thông điệp và ý nghĩa sâu sắc. Vì thế, CupShop tự tin đặt ra những tiêu chuẩn dịch vụ khắt khe nhất để bảo vệ khách hàng:
+              Chúng tôi hiểu rằng mỗi sản phẩm gia dụng được giao đến tay bạn là một mảnh ghép để xây dựng tổ ấm tiện nghi. Vì thế, CozyHome tự tin đặt ra những tiêu chuẩn dịch vụ khắt khe nhất để bảo vệ khách hàng:
             </p>
             <div className="space-y-4 pt-2">
               <div className="flex items-start gap-3">
@@ -377,20 +377,20 @@ export default function AboutPage() {
             Bắt đầu trải nghiệm ngay
           </span>
           <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-            Sẵn sàng tạo dựng <br />
+            Sẵn sàng trang trí <br />
             <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-300 bg-clip-text text-transparent">
-              Chiếc cốc độc bản của riêng bạn?
+              Tổ ấm tinh tế của riêng bạn?
             </span>
           </h2>
           <p className="mx-auto max-w-xl text-stone-400 text-sm sm:text-base leading-relaxed">
-            Chỉ với vài thao tác kéo thả đơn giản trên trình thiết kế 3D, hãy biến ý tưởng sáng tạo thành hiện thực trên các chất liệu sứ và thép cách nhiệt bền bỉ nhất.
+            Khám phá ngay bộ sưu tập đồ gia dụng cao cấp, chất lượng nhất để làm đẹp thêm cho căn nhà và cuộc sống của gia đình bạn.
           </p>
           <div className="pt-4 flex flex-wrap justify-center gap-4">
             <Link
               href="/products"
               className="group inline-flex items-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-500 transition-all px-8 py-4 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-amber-600/25 active:scale-95"
             >
-              Thiết kế của bạn
+              Mua sắm ngay
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
             <Link

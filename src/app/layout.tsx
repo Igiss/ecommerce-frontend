@@ -6,14 +6,14 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | CupShop',
+    template: '%s | CozyHome',
     default: siteConfig.name,
   },
   description: siteConfig.description,
   openGraph: {
     title: siteConfig.name,
     description: siteConfig.description,
-    url: 'https://cupshop.vn',
+    url: 'https://cozyhome.vn',
     siteName: siteConfig.name,
     images: [
       {

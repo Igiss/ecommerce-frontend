@@ -1,4 +1,4 @@
 export const siteConfig = {
-  name: 'Cup Shop',
-  description: 'Customize your own 3D cup design'
+  name: 'CozyHome',
+  description: 'Cửa hàng đồ gia dụng thông minh và tiện nghi'
 } as const

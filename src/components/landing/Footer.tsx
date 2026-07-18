@@ -10,11 +10,11 @@ export function Footer() {
           <div className="flex flex-col gap-4">
             <Link href="/" className="flex items-center gap-2">
               <span className="text-xl font-extrabold tracking-tight text-white">
-                Cup<span className="text-amber-500">Shop</span>
+                Cozy<span className="text-amber-500">Home</span>
               </span>
             </Link>
             <p className="text-sm text-stone-500 leading-relaxed">
-              Cung cấp các sản phẩm ly sứ và cốc giữ nhiệt cao cấp. Thiết kế độc bản theo phong cách 3D cá nhân hóa.
+              Cung cấp các sản phẩm đồ gia dụng thông minh và tiện nghi cao cấp. Nâng tầm không gian sống của gia đình bạn.
             </p>
           </div>
 
@@ -64,7 +64,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="h-4.5 w-4.5 text-amber-500 shrink-0" />
-                <span>support@cupshop.com</span>
+                <span>support@cozyhome.vn</span>
               </li>
             </ul>
           </div>
@@ -73,7 +73,7 @@ export function Footer() {
         <hr className="border-stone-800 my-8" />
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-600">
-          <p>&copy; {new Date().getFullYear()} CupShop. Tất cả các quyền được bảo lưu.</p>
+          <p>&copy; {new Date().getFullYear()} CozyHome. Tất cả các quyền được bảo lưu.</p>
           <div className="flex gap-4">
             <Link href="#" className="hover:text-amber-500 transition-colors">Facebook</Link>
             <Link href="#" className="hover:text-amber-500 transition-colors">Instagram</Link>

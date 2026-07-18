@@ -375,7 +375,7 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
                 </button>
                 {openSection === 'desc' && (
                   <div className="p-4 border-t border-stone-100 text-sm text-stone-600 leading-relaxed whitespace-pre-wrap animate-in fade-in duration-200">
-                    {product.description || 'Chưa có thông tin mô tả chi tiết cho chiếc cốc này.'}
+                    {product.description || 'Chưa có thông tin mô tả chi tiết cho sản phẩm này.'}
                   </div>
                 )}
               </div>
@@ -399,7 +399,7 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
                 {openSection === 'shipping' && (
                   <div className="p-4 border-t border-stone-100 text-xs text-stone-600 space-y-2.5 animate-in fade-in duration-200 leading-relaxed">
                     <p className="flex gap-1.5"><strong className="text-stone-700 shrink-0">• Giao hàng toàn quốc:</strong> Hỗ trợ giao hàng tận nơi. Nhận hàng trong vòng 1-2 ngày (Hà Nội, TP.HCM) và 2-4 ngày (các tỉnh thành khác).</p>
-                    <p className="flex gap-1.5"><strong className="text-stone-700 shrink-0">• Bọc xốp bảo vệ:</strong> Mỗi chiếc cốc được bọc khí xốp dày 3 lớp để tránh rạn nứt tuyệt đối trong quá trình chuyển phát.</p>
+                    <p className="flex gap-1.5"><strong className="text-stone-700 shrink-0">• Đóng gói cẩn thận:</strong> Mỗi sản phẩm được đóng hộp chống va đập, bọc bong bóng khí dày 3 lớp để bảo vệ tuyệt đối trong quá trình chuyển phát.</p>
                     <p className="flex gap-1.5"><strong className="text-stone-700 shrink-0">• Hoàn tiền & Đổi trả:</strong> Hỗ trợ đổi mới 1-đổi-1 hoàn toàn miễn phí nếu sản phẩm nhận về bị sứt mẻ, vỡ do vận chuyển hoặc phát hiện lỗi sản xuất trong vòng 7 ngày kể từ khi nhận hàng.</p>
                   </div>
                 )}

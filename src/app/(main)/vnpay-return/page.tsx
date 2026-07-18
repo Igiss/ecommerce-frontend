@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, XCircle, AlertCircle, ShoppingBag, ArrowRight } from 'lucide-react'
 import { useCartStore } from '@/store/cart.store'
+import { cancelOrder } from '@/lib/api/orders.service'
 
 function VNPayReturnContent() {
   const searchParams = useSearchParams()
@@ -25,6 +26,10 @@ function VNPayReturnContent() {
       clearCart()
     } else {
       setIsSuccess(false)
+      if (orderIdParam) {
+        cancelOrder(orderIdParam, 'Thanh toán qua VNPay thất bại hoặc bị hủy')
+          .catch((err) => console.error('Failed to cancel order:', err))
+      }
       // Extract error details if any
       switch (responseCode) {
         case '24':
@@ -61,7 +66,7 @@ function VNPayReturnContent() {
           </div>
           <h1 className="text-2xl font-bold text-stone-900 tracking-tight mb-2">Thanh toán thành công!</h1>
           <p className="text-sm text-stone-500 leading-relaxed max-w-md mx-auto">
-            Cảm ơn bạn đã tin tưởng CupShop. Đơn hàng của bạn đã được thanh toán và đang được chuyển sang bộ phận in ấn 3D.
+            Cảm ơn bạn đã tin tưởng CozyHome. Đơn hàng của bạn đã được thanh toán thành công và đang được xử lý chuẩn bị giao hàng.
           </p>
 
           {orderId && (

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getActiveCoupons } from '@/lib/api/coupons.service'
-import { Ticket, Loader2, AlertCircle, Eye, Search, SlidersHorizontal, X } from 'lucide-react'
+import { Ticket, Loader2, AlertCircle, Eye, Search, SlidersHorizontal, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 export default function VouchersListPage() {
@@ -16,6 +16,12 @@ export default function VouchersListPage() {
   const [typeFilter, setTypeFilter] = useState('all') // all, percentage, fixed
   const [minOrderFilter, setMinOrderFilter] = useState('all') // all, under200, 200to500, over500
   const [sortBy, setSortBy] = useState('newest') // newest, expiry_asc, expiry_desc
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 6
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, statusFilter, typeFilter, minOrderFilter, sortBy])
 
   useEffect(() => {
     getActiveCoupons()
@@ -80,6 +86,12 @@ export default function VouchersListPage() {
       return 0
     })
 
+  const totalItems = filteredCoupons.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentItems = filteredCoupons.slice(indexOfFirstItem, indexOfLastItem)
+
   const hasActiveFilters = searchQuery || statusFilter !== 'all' || typeFilter !== 'all' || minOrderFilter !== 'all' || sortBy !== 'newest'
 
   return (
@@ -93,7 +105,7 @@ export default function VouchersListPage() {
             Kho Voucher Khuyến Mãi
           </h1>
           <p className="text-xs text-stone-500 mt-2 font-medium">
-            Khám phá các ưu đãi đặc biệt từ các chủ cửa hàng (Owner) của CupShop. Chọn mã giảm giá phù hợp để áp dụng cho đơn hàng của bạn.
+            Khám phá các ưu đãi đặc biệt từ các đối tác và cửa hàng của CozyHome. Chọn mã giảm giá phù hợp để áp dụng cho đơn hàng của bạn.
           </p>
         </div>
 
@@ -216,7 +228,7 @@ export default function VouchersListPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredCoupons.map((coupon) => {
+            {currentItems.map((coupon) => {
               const isPercentage = coupon.discountType === 'percentage'
               const isExpired = new Date(coupon.expiryDate) < new Date()
               
@@ -288,6 +300,41 @@ export default function VouchersListPage() {
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-6 border-t border-stone-100 mt-8">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-3xs"
+            >
+              <ChevronLeft className="h-4 w-4 text-stone-600" />
+            </button>
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`h-9 w-9 rounded-xl text-xs font-bold transition-all shadow-3xs cursor-pointer ${
+                  currentPage === page
+                    ? 'bg-amber-800 text-white'
+                    : 'border border-stone-205 bg-white text-stone-650 hover:bg-stone-50'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-3xs"
+            >
+              <ChevronRight className="h-4 w-4 text-stone-600" />
+            </button>
           </div>
         )}
       </div>

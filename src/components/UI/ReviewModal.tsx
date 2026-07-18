@@ -53,9 +53,28 @@ export function ReviewModal({ isOpen, onClose, orderId, product, onSuccess }: Re
         imageUploadIds.push(uploadRes.id)
       }
 
+      let targetProductId = ''
+      if (product.productId) {
+        if (typeof product.productId === 'object') {
+          targetProductId = product.productId._id || product.productId.id || ''
+        } else {
+          targetProductId = String(product.productId)
+        }
+      }
+      if (!targetProductId && product.product) {
+        if (typeof product.product === 'object') {
+          targetProductId = product.product._id || product.product.id || ''
+        } else {
+          targetProductId = String(product.product)
+        }
+      }
+      if (!targetProductId && product.id) {
+        targetProductId = String(product.id)
+      }
+
       await createReview({
         orderId,
-        productId: product.productId || product.id,
+        productId: targetProductId,
         rating,
         comment,
         ...(imageUploadIds.length > 0 ? { imageUploadIds } : {})
@@ -97,9 +116,23 @@ export function ReviewModal({ isOpen, onClose, orderId, product, onSuccess }: Re
 
         <div className="p-4 overflow-y-auto">
           <div className="flex gap-3 items-center mb-6 bg-stone-50 p-3 rounded-xl border border-stone-100">
-            <img src={product.image} alt={product.name} className="h-12 w-12 rounded-lg object-cover" />
+            <img 
+              src={
+                product.image || 
+                (product.productId && typeof product.productId === 'object' ? product.productId.image : '') ||
+                (product.product && typeof product.product === 'object' ? product.product.image : '') ||
+                'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600'
+              } 
+              alt={product.name || product.productName || 'Sản phẩm'} 
+              className="h-12 w-12 rounded-lg object-cover" 
+            />
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-stone-900 text-sm truncate">{product.name}</p>
+              <p className="font-bold text-stone-900 text-sm truncate">
+                {product.name || product.productName || 
+                  (product.productId && typeof product.productId === 'object' ? product.productId.name : '') ||
+                  (product.product && typeof product.product === 'object' ? product.product.name : '') ||
+                  'Sản phẩm'}
+              </p>
             </div>
           </div>
 

@@ -34,7 +34,7 @@ export default function CartPage() {
           <ShoppingBag className="h-20 w-20" />
         </div>
         <h2 className="text-2xl font-bold text-stone-900 tracking-tight">Giỏ hàng của bạn đang trống</h2>
-        <p className="mt-2 text-stone-500 text-sm">Hãy chọn cho mình chiếc cốc ưng ý nhất và bắt đầu trang trí nhé!</p>
+        <p className="mt-2 text-stone-500 text-sm">Hãy tìm cho mình những món đồ gia dụng ưng ý nhất và đặt hàng nhé!</p>
         <div className="mt-8">
           <Link
             href="/"
