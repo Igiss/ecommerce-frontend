@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, XCircle, AlertCircle, ShoppingBag, ArrowRight } from 'lucide-react'
 import { useCartStore } from '@/store/cart.store'
+import { getOrderById } from '@/lib/api/orders.service'
 
 function VNPayReturnContent() {
   const searchParams = useSearchParams()
@@ -12,6 +13,7 @@ function VNPayReturnContent() {
   const [orderId, setOrderId] = useState<string>('')
   const [responseMsg, setResponseMsg] = useState('')
   const clearCart = useCartStore((state) => state.clearCart)
+  const isCheckingRef = useRef(false)
 
   useEffect(() => {
     const status = searchParams.get('status')
@@ -20,27 +22,49 @@ function VNPayReturnContent() {
 
     if (orderIdParam) setOrderId(orderIdParam)
 
-    if (status === 'success' || responseCode === '00') {
-      setIsSuccess(true)
-      clearCart()
-    } else {
-      setIsSuccess(false)
-      // Extract error details if any
-      switch (responseCode) {
-        case '24':
-          setResponseMsg('Giao dịch đã bị hủy bởi người dùng.')
-          break;
-        case '09':
-          setResponseMsg('Thẻ/Tài khoản của khách hàng chưa đăng ký dịch vụ InternetBanking.')
-          break;
-        case '11':
-          setResponseMsg('Giao dịch không thành công do hết hạn chờ xác thực.')
-          break;
-        default:
-          setResponseMsg('Thanh toán không thành công. Vui lòng thử lại.')
-          break;
+    const verify = async () => {
+      if (isCheckingRef.current) return
+      isCheckingRef.current = true
+
+      if (status === 'success' || responseCode === '00') {
+        if (!orderIdParam) {
+          setIsSuccess(false)
+          setResponseMsg('Không tìm thấy mã đơn hàng.')
+          return
+        }
+        try {
+          const order = await getOrderById(orderIdParam)
+          if (order.paymentStatus === 'paid') {
+            setIsSuccess(true)
+            clearCart()
+          } else {
+            setIsSuccess(false)
+            setResponseMsg('Đơn hàng chưa được đánh dấu đã thanh toán trên hệ thống.')
+          }
+        } catch (err: any) {
+          setIsSuccess(false)
+          setResponseMsg('Không thể xác nhận trạng thái đơn hàng từ máy chủ.')
+        }
+      } else {
+        setIsSuccess(false)
+        switch (responseCode) {
+          case '24':
+            setResponseMsg('Giao dịch đã bị hủy bởi người dùng.')
+            break;
+          case '09':
+            setResponseMsg('Thẻ/Tài khoản của khách hàng chưa đăng ký dịch vụ InternetBanking.')
+            break;
+          case '11':
+            setResponseMsg('Giao dịch không thành công do hết hạn chờ xác thực.')
+            break;
+          default:
+            setResponseMsg('Thanh toán không thành công. Vui lòng thử lại.')
+            break;
+        }
       }
     }
+
+    void verify()
   }, [searchParams, clearCart])
 
   if (isSuccess === null) {
