@@ -16,9 +16,9 @@ interface WishlistState {
 
 const getStorageKey = (userId: string | null, userRole: string | null) => {
   if (!userId || !userRole) {
-    return 'cozyhome_wishlist_guest'
+    return 'giadung24h_wishlist_guest'
   }
-  return `cozyhome_wishlist_${userRole}_${userId}`
+  return `giadung24h_wishlist_${userRole}_${userId}`
 }
 
 export const useWishlistStore = create<WishlistState>((set, get) => {
@@ -26,7 +26,7 @@ export const useWishlistStore = create<WishlistState>((set, get) => {
   let initialItems: Product[] = []
   if (typeof window !== 'undefined') {
     try {
-      const storedItems = localStorage.getItem('cozyhome_wishlist_guest') || localStorage.getItem('cozyhome_wishlist')
+      const storedItems = localStorage.getItem('giadung24h_wishlist_guest') || localStorage.getItem('giadung24h_wishlist') || localStorage.getItem('cozyhome_wishlist_guest') || localStorage.getItem('cozyhome_wishlist')
       if (storedItems) initialItems = JSON.parse(storedItems)
     } catch {
       // Ignore
@@ -45,7 +45,7 @@ export const useWishlistStore = create<WishlistState>((set, get) => {
           const key = getStorageKey(userId, userRole)
           let storedItems = localStorage.getItem(key)
           if (!userId && !storedItems) {
-            storedItems = localStorage.getItem('cozyhome_wishlist')
+            storedItems = localStorage.getItem('giadung24h_wishlist') || localStorage.getItem('cozyhome_wishlist')
           }
           if (storedItems) loadedItems = JSON.parse(storedItems)
         } catch {

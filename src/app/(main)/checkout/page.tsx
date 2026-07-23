@@ -139,7 +139,7 @@ export default function CheckoutPage() {
           </svg>
         </div>
         <h2 className="text-2xl font-black text-stone-900 tracking-tight">Đặt hàng thành công!</h2>
-        <p className="text-sm text-stone-500 mt-2">Cảm ơn bạn đã mua sắm tại CozyHome. Đơn hàng của bạn đã được tiếp nhận và đang được xử lý.</p>
+        <p className="text-sm text-stone-500 mt-2">Cảm ơn bạn đã mua sắm tại Gia Dụng 24h. Đơn hàng của bạn đã được tiếp nhận và đang được xử lý.</p>
         {newOrderId && (
           <div className="mt-4 rounded-xl bg-stone-50 border border-stone-150 p-3.5 text-xs text-stone-600">
             Mã đơn hàng: <strong className="text-stone-900 select-all">{newOrderId}</strong>
@@ -662,7 +662,7 @@ export default function CheckoutPage() {
 
             <div className="mt-6 flex items-center gap-2 rounded-lg bg-stone-50 border border-stone-100 p-3 text-[10px] text-stone-500 leading-normal">
               <ShieldCheck className="h-4 w-4 text-amber-700 shrink-0" />
-              <span>Giao dịch của bạn được bảo mật. Bằng cách nhấn đặt hàng, bạn đồng ý với các điều khoản dịch vụ của CozyHome.</span>
+              <span>Giao dịch của bạn được bảo mật. Bằng cách nhấn đặt hàng, bạn đồng ý với các điều khoản dịch vụ của Gia Dụng 24h.</span>
             </div>
           </div>
         </div>

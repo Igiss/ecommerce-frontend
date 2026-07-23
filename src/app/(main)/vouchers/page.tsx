@@ -105,7 +105,7 @@ export default function VouchersListPage() {
             Kho Voucher Khuyến Mãi
           </h1>
           <p className="text-xs text-stone-500 mt-2 font-medium">
-            Khám phá các ưu đãi đặc biệt từ các đối tác và cửa hàng của CozyHome. Chọn mã giảm giá phù hợp để áp dụng cho đơn hàng của bạn.
+            Khám phá các ưu đãi đặc biệt từ các đối tác và cửa hàng của Gia Dụng 24h. Chọn mã giảm giá phù hợp để áp dụng cho đơn hàng của bạn.
           </p>
         </div>
 

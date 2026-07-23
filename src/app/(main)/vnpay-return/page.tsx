@@ -89,7 +89,7 @@ function VNPayReturnContent() {
           </div>
           <h1 className="text-2xl font-bold text-stone-900 tracking-tight mb-2">Thanh toán thành công!</h1>
           <p className="text-sm text-stone-500 leading-relaxed max-w-md mx-auto">
-            Cảm ơn bạn đã tin tưởng CozyHome. Đơn hàng của bạn đã được thanh toán thành công và đang được xử lý chuẩn bị giao hàng.
+            Cảm ơn bạn đã tin tưởng Gia Dụng 24h. Đơn hàng của bạn đã được thanh toán thành công và đang được xử lý chuẩn bị giao hàng.
           </p>
 
           {orderId && (

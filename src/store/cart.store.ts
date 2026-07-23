@@ -36,9 +36,9 @@ export const getCartItemKey = (item: CartItem) => {
 
 const getStorageKey = (userId: string | null, userRole: string | null) => {
   if (!userId || !userRole) {
-    return 'cozyhome_cart_guest'
+    return 'giadung24h_cart_guest'
   }
-  return `cozyhome_cart_${userRole}_${userId}`
+  return `giadung24h_cart_${userRole}_${userId}`
 }
 
 export const useCartStore = create<CartState>((set, get) => {
@@ -46,7 +46,7 @@ export const useCartStore = create<CartState>((set, get) => {
   let initialItems: CartItem[] = []
   if (typeof window !== 'undefined') {
     try {
-      let storedItems = localStorage.getItem('cozyhome_cart_guest') || localStorage.getItem('cozyhome_cart')
+      let storedItems = localStorage.getItem('giadung24h_cart_guest') || localStorage.getItem('giadung24h_cart') || localStorage.getItem('cozyhome_cart_guest') || localStorage.getItem('cozyhome_cart')
       if (storedItems) initialItems = JSON.parse(storedItems)
     } catch {
       // Ignore
@@ -65,7 +65,7 @@ export const useCartStore = create<CartState>((set, get) => {
           const key = getStorageKey(userId, userRole)
           let storedItems = localStorage.getItem(key)
           if (!userId && !storedItems) {
-            storedItems = localStorage.getItem('cozyhome_cart')
+            storedItems = localStorage.getItem('giadung24h_cart') || localStorage.getItem('cozyhome_cart')
           }
           if (storedItems) loadedItems = JSON.parse(storedItems)
         } catch {
