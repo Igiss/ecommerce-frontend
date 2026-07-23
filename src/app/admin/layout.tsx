@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { logoutUser } from '@/lib/api/auth.service'
 import Link from 'next/link'
-import { LayoutDashboard, ShoppingCart, Calendar, Ticket, ArrowLeft, Loader2, LogOut, Shield, Users, FolderOpen, Bell, Truck } from 'lucide-react'
+import { LayoutDashboard, ShoppingCart, Calendar, Ticket, ArrowLeft, Loader2, LogOut, Shield, Users, FolderOpen, Bell, Truck, Image as ImageIcon } from 'lucide-react'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -56,6 +56,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const sidebarLinks = [
     { href: '/admin/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+    { href: '/admin/coupons', label: 'Mã giảm giá (Vouchers)', icon: Ticket },
+    { href: '/admin/banners', label: 'Quản lý Banners', icon: ImageIcon },
     { href: '/admin/shipping-units', label: 'Đơn vị vận chuyển', icon: Truck },
     { href: '/admin/users', label: 'Duyệt chủ shop', icon: Users },
     { href: '/admin/categories', label: 'Danh mục sản phẩm', icon: FolderOpen },
@@ -70,7 +72,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="h-16 flex items-center px-6 border-b border-stone-800">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-lg font-extrabold tracking-tight text-white">
-              Cup<span className="text-amber-500">Shop</span> <span className="text-[10px] bg-amber-500/25 text-amber-500 px-1.5 py-0.5 rounded-full font-bold ml-1 uppercase">Admin</span>
+              Gia Dụng <span className="text-amber-500">24h</span> <span className="text-[10px] bg-amber-500/25 text-amber-500 px-1.5 py-0.5 rounded-full font-bold ml-1 uppercase">Admin</span>
             </span>
           </Link>
         </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   MessageSquare,
   Bot,
@@ -10,7 +11,8 @@ import {
   Send,
   RotateCcw,
   ShoppingCart,
-  Loader
+  Loader,
+  ExternalLink
 } from 'lucide-react'
 import { sendChatMessage, type ChatMessage } from '@/lib/api/chat.service'
 import { getProducts } from '@/lib/api/products.service'
@@ -18,15 +20,15 @@ import { useCartStore } from '@/store/cart.store'
 import type { Product } from '@/types/product'
 
 const QUICK_PROMPTS = [
-  'Tìm cốc sứ đẹp',
-  'Ly giữ nhiệt giá bao nhiêu?',
-  'Có cốc thủy tinh không?',
-  'Làm thế nào để tự thiết kế cốc?'
+  'Nồi chiên không dầu loại nào tốt?',
+  'Lò vi sóng giá bao nhiêu?',
+  'Hôm nay có voucher giảm giá nào?',
+  'Chính sách bảo hành tại Gia Dụng 24h'
 ]
 
 const WELCOME_MESSAGE: ChatMessage = {
   role: 'assistant',
-  content: 'Xin chào! Mình là trợ lý ảo của Cup Store. Bạn cần tìm kiếm cốc, ly giữ nhiệt hay muốn tự thiết kế sản phẩm của riêng mình? Hãy hỏi mình nhé! 😊'
+  content: 'Xin chào! Mình là Trợ Lý AI của Gia Dụng 24h 🍳. Bạn cần tư vấn thiết bị nhà bếp, đồ gia dụng thông minh hay thông tin khuyến mãi hôm nay? Hãy hỏi mình nhé! 😊'
 }
 
 export function Chatbox() {
@@ -40,7 +42,7 @@ export function Chatbox() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const addItem = useCartStore((state) => state.addItem)
 
-  // Fetch all products once to map modelUrls & other details for recommendations
+  // Fetch all products once to map details for recommendations
   useEffect(() => {
     getProducts()
       .then((data: any) => {
@@ -136,8 +138,28 @@ export function Chatbox() {
   }
 
   const handleCustomize = (chatProduct: any) => {
-    setIsOpen(false) // Close chatbox when customizer opens
+    setIsOpen(false)
     router.push(`/?customize=${chatProduct.id}`)
+  }
+
+  // Format assistant message lines
+  const formatContent = (content: string) => {
+    const lines = content.split('\n')
+    return lines.map((line, idx) => {
+      let formattedLine = line
+      // Replace bold **text**
+      const parts = formattedLine.split(/(\*\*.*?\*\*)/g)
+      return (
+        <p key={idx} className={idx > 0 ? 'mt-1' : ''}>
+          {parts.map((part, pIdx) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              return <strong key={pIdx} className="font-bold">{part.slice(2, -2)}</strong>
+            }
+            return part
+          })}
+        </p>
+      )
+    })
   }
 
   return (
@@ -145,8 +167,8 @@ export function Chatbox() {
       {/* Floating Button Trigger */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-amber-700 to-amber-900 text-white shadow-lg shadow-amber-950/20 hover:scale-105 hover:from-amber-850 hover:to-stone-950 transition-all duration-300 focus:outline-none"
-        title="Trợ lý ảo AI"
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-amber-700 to-amber-900 text-white shadow-lg shadow-amber-950/20 hover:scale-105 hover:from-amber-850 hover:to-stone-950 transition-all duration-300 focus:outline-none cursor-pointer"
+        title="Trợ lý ảo AI Gia Dụng 24h"
       >
         {isOpen ? (
           <X className="h-6 w-6" />
@@ -160,7 +182,7 @@ export function Chatbox() {
 
       {/* Chat Window Popup */}
       <div
-        className={`fixed bottom-24 right-6 z-50 flex w-[380px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-8rem)] flex-col rounded-2xl border border-stone-200/80 bg-white/95 backdrop-blur-md shadow-2xl transition-all duration-300 origin-bottom-right ${
+        className={`fixed bottom-24 right-6 z-50 flex w-[390px] max-w-[calc(100vw-2rem)] h-[580px] max-h-[calc(100vh-8rem)] flex-col rounded-2xl border border-stone-200/80 bg-white/95 backdrop-blur-md shadow-2xl transition-all duration-300 origin-bottom-right ${
           isOpen
             ? 'scale-100 opacity-100 pointer-events-auto'
             : 'scale-90 opacity-0 pointer-events-none'
@@ -174,7 +196,7 @@ export function Chatbox() {
               <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-amber-800" />
             </div>
             <div>
-              <h3 className="text-sm font-bold tracking-wide">Trợ Lý AI Shop</h3>
+              <h3 className="text-sm font-bold tracking-wide">Trợ Lý AI Gia Dụng 24h</h3>
               <p className="text-[10px] text-amber-100 flex items-center gap-1">
                 <Sparkles className="h-3 w-3 animate-pulse text-amber-300" />
                 Đang trực tuyến
@@ -207,60 +229,85 @@ export function Chatbox() {
               <div key={idx} className="space-y-2">
                 <div className={`flex items-start gap-2.5 ${!isBot ? 'justify-end' : 'justify-start'}`}>
                   {isBot && (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-100 border border-stone-200/50 text-amber-800 text-xs">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs">
                       <Bot className="h-4 w-4" />
                     </div>
                   )}
                   <div
-                    className={`text-xs sm:text-sm leading-relaxed p-3 shadow-sm ${
+                    className={`text-xs sm:text-sm leading-relaxed p-3 shadow-xs ${
                       isBot
-                        ? 'bg-stone-100/90 text-stone-800 rounded-2xl rounded-tl-none border border-stone-200/50 max-w-[82%]'
-                        : 'bg-amber-800 text-white rounded-2xl rounded-tr-none max-w-[82%]'
+                        ? 'bg-stone-100/90 text-stone-850 rounded-2xl rounded-tl-none border border-stone-200/60 max-w-[85%]'
+                        : 'bg-amber-800 text-white rounded-2xl rounded-tr-none max-w-[85%]'
                     }`}
                   >
-                    {msg.content}
+                    {isBot ? formatContent(msg.content) : msg.content}
                   </div>
                 </div>
 
-                {/* Display Product Recommendations if any */}
+                {/* Display Product Recommendations */}
                 {isBot && msg.products && msg.products.length > 0 && (
                   <div className="ml-10 flex gap-3 overflow-x-auto pb-2 pt-1 scrollbar-thin scrollbar-thumb-amber-200">
                     {msg.products.map((p) => {
                       const localMatch = allProducts.find((lp) => String(lp.id) === String(p.id))
                       const hasModel = !!(localMatch?.modelUrl || p.modelUrl)
-                      const pImg = p.images?.[0] || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300'
+                      const pImg = p.images?.[0] || 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=300'
+                      const isSale = p.originalPrice && p.originalPrice > p.price
+                      const discountPct = isSale ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0
 
                       return (
                         <div
                           key={p.id}
-                          className="w-[145px] shrink-0 rounded-xl border border-stone-200/80 bg-white p-2.5 shadow-sm hover:border-amber-600/30 transition-all flex flex-col justify-between"
+                          className="w-[150px] shrink-0 rounded-xl border border-stone-200 bg-white p-2.5 shadow-xs hover:border-amber-600/40 transition-all flex flex-col justify-between"
                         >
-                          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-stone-50">
+                          <Link
+                            href={`/products/${p.id}`}
+                            onClick={() => setIsOpen(false)}
+                            className="group block relative aspect-square w-full overflow-hidden rounded-lg bg-stone-50"
+                          >
                             <img
                               src={pImg}
                               alt={p.name}
-                              className="h-full w-full object-contain"
+                              className="h-full w-full object-contain transition-transform group-hover:scale-105"
                             />
+                            {isSale && (
+                              <span className="absolute top-1 left-1 bg-red-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-xs">
+                                -{discountPct}%
+                              </span>
+                            )}
                             {hasModel && (
-                              <span className="absolute top-1 right-1 flex items-center gap-0.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[8px] font-bold text-white">
+                              <span className="absolute top-1 right-1 flex items-center gap-0.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[8px] font-bold text-white shadow-xs">
                                 <Sparkles className="h-2 w-2" />
                                 3D
                               </span>
                             )}
-                          </div>
+                          </Link>
+
                           <div className="mt-2 flex-grow">
-                            <h4 className="text-[11px] font-bold text-stone-900 line-clamp-1">
-                              {p.name}
-                            </h4>
-                            <p className="text-[11px] font-extrabold text-amber-850 mt-0.5">
-                              {p.price.toLocaleString('vi-VN')}đ
-                            </p>
+                            <Link
+                              href={`/products/${p.id}`}
+                              onClick={() => setIsOpen(false)}
+                              className="text-[11px] font-bold text-stone-900 line-clamp-1 hover:text-amber-800 transition-colors flex items-center justify-between gap-1"
+                              title={p.name}
+                            >
+                              <span>{p.name}</span>
+                              <ExternalLink className="h-2.5 w-2.5 shrink-0 text-stone-400" />
+                            </Link>
+                            <div className="mt-0.5 flex items-baseline gap-1">
+                              <span className="text-[11px] font-extrabold text-amber-900">
+                                {p.price.toLocaleString('vi-VN')}đ
+                              </span>
+                              {isSale && (
+                                <span className="text-[9px] text-stone-400 line-through">
+                                  {p.originalPrice.toLocaleString('vi-VN')}đ
+                                </span>
+                              )}
+                            </div>
                           </div>
                           
-                          <div className="mt-2.5 flex flex-col gap-1">
+                          <div className="mt-2 flex flex-col gap-1">
                             <button
                               onClick={() => handleAddToCart(p)}
-                              className="flex w-full items-center justify-center gap-1 rounded-md bg-stone-100 hover:bg-amber-50 hover:text-amber-800 text-[10px] font-bold text-stone-700 py-1 border border-stone-200/60 transition-colors cursor-pointer"
+                              className="flex w-full items-center justify-center gap-1 rounded-lg bg-stone-100 hover:bg-amber-50 hover:text-amber-800 text-[10px] font-bold text-stone-700 py-1 border border-stone-200 transition-colors cursor-pointer"
                             >
                               <ShoppingCart className="h-3 w-3" />
                               Thêm giỏ
@@ -268,7 +315,7 @@ export function Chatbox() {
                             {hasModel && (
                               <button
                                 onClick={() => handleCustomize(p)}
-                                className="w-full text-center rounded-md bg-amber-800 hover:bg-amber-900 text-[10px] font-bold text-white py-1 transition-colors cursor-pointer"
+                                className="w-full text-center rounded-lg bg-amber-800 hover:bg-amber-900 text-[10px] font-bold text-white py-1 transition-colors cursor-pointer"
                               >
                                 Tự thiết kế
                               </button>
@@ -286,10 +333,10 @@ export function Chatbox() {
           {/* Typing Indicator */}
           {loading && (
             <div className="flex items-start gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-100 border border-stone-200/50 text-amber-800 text-xs">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs">
                 <Bot className="h-4 w-4" />
               </div>
-              <div className="bg-stone-100/90 text-stone-500 rounded-2xl rounded-tl-none border border-stone-200/50 px-4 py-3 shadow-sm flex items-center gap-1">
+              <div className="bg-stone-100/90 text-stone-500 rounded-2xl rounded-tl-none border border-stone-200/50 px-4 py-3 shadow-xs flex items-center gap-1">
                 <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-stone-500 [animation-delay:-0.3s]" />
                 <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-stone-500 [animation-delay:-0.15s]" />
                 <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-stone-500" />
@@ -301,14 +348,14 @@ export function Chatbox() {
 
         {/* Quick Suggestions */}
         {messages.length === 1 && !loading && (
-          <div className="px-4 py-2 bg-stone-50/50 border-t border-stone-150">
-            <p className="text-[10px] text-stone-500 font-semibold mb-1">Gợi ý câu hỏi:</p>
+          <div className="px-4 py-2.5 bg-stone-50/70 border-t border-stone-150">
+            <p className="text-[10px] text-stone-500 font-bold mb-1.5 uppercase tracking-wider">Gợi ý câu hỏi phổ biến:</p>
             <div className="flex flex-wrap gap-1.5">
               {QUICK_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => handleSend(prompt)}
-                  className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-[10px] text-stone-600 transition-colors hover:border-amber-700 hover:bg-amber-50 hover:text-amber-800 cursor-pointer"
+                  className="rounded-full border border-stone-250 bg-white px-2.5 py-1 text-[10px] font-medium text-stone-700 transition-all hover:border-amber-700 hover:bg-amber-50 hover:text-amber-900 cursor-pointer active:scale-95"
                 >
                   {prompt}
                 </button>
@@ -323,20 +370,20 @@ export function Chatbox() {
             e.preventDefault()
             handleSend(inputText)
           }}
-          className="flex items-center gap-2 border-t border-stone-200 bg-white/70 p-3 rounded-b-2xl"
+          className="flex items-center gap-2 border-t border-stone-200 bg-white/80 p-3 rounded-b-2xl"
         >
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Hỏi về sản phẩm, thiết kế 3D..."
-            className="flex-1 rounded-xl border border-stone-300 bg-stone-50/50 px-3 py-2 text-xs sm:text-sm focus:border-amber-700 focus:bg-white focus:outline-none transition-all text-stone-850"
+            placeholder="Hỏi về sản phẩm, mã giảm giá, bảo hành..."
+            className="flex-1 rounded-xl border border-stone-300 bg-stone-50 px-3.5 py-2 text-xs sm:text-sm focus:border-amber-700 focus:bg-white focus:outline-none transition-all text-stone-850"
             disabled={loading}
           />
           <button
             type="submit"
             disabled={!inputText.trim() || loading}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-800 text-white transition-colors hover:bg-amber-900 disabled:bg-stone-200 disabled:text-stone-400 focus:outline-none cursor-pointer"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-800 text-white transition-colors hover:bg-amber-900 disabled:bg-stone-200 disabled:text-stone-400 focus:outline-none cursor-pointer shrink-0"
           >
             {loading ? (
               <Loader className="h-4 w-4 animate-spin" />

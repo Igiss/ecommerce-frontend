@@ -128,7 +128,7 @@ export function Navbar() {
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-xl font-extrabold tracking-tight text-amber-800">
-              Cup<span className="text-amber-600">Shop</span>
+              Gia Dụng <span className="text-amber-600">24h</span>
             </span>
           </Link>
 

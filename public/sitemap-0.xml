@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
-<url><loc>https://cupshop.vn</loc><lastmod>2026-06-28T05:50:14.749Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://cupshop.vn/about</loc><lastmod>2026-06-28T05:50:14.752Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://cupshop.vn/auth/google/callback</loc><lastmod>2026-06-28T05:50:14.752Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://cupshop.vn/cart</loc><lastmod>2026-06-28T05:50:14.752Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://cupshop.vn/login</loc><lastmod>2026-06-28T05:50:14.752Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://cupshop.vn/products</loc><lastmod>2026-06-28T05:50:14.752Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://cupshop.vn/register</loc><lastmod>2026-06-28T05:50:14.752Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://cupshop.vn/register-owner</loc><lastmod>2026-06-28T05:50:14.752Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://cupshop.vn/vnpay-return</loc><lastmod>2026-06-28T05:50:14.752Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://cupshop.vn/wishlist</loc><lastmod>2026-06-28T05:50:14.752Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://giadung24h.vn</loc><lastmod>2026-07-23T08:05:30.284Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://giadung24h.vn/about</loc><lastmod>2026-07-23T08:05:30.285Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://giadung24h.vn/auth/google/callback</loc><lastmod>2026-07-23T08:05:30.285Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://giadung24h.vn/cart</loc><lastmod>2026-07-23T08:05:30.285Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://giadung24h.vn/login</loc><lastmod>2026-07-23T08:05:30.285Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://giadung24h.vn/products</loc><lastmod>2026-07-23T08:05:30.285Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://giadung24h.vn/register</loc><lastmod>2026-07-23T08:05:30.285Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://giadung24h.vn/register-owner</loc><lastmod>2026-07-23T08:05:30.285Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://giadung24h.vn/vnpay-return</loc><lastmod>2026-07-23T08:05:30.285Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://giadung24h.vn/vouchers</loc><lastmod>2026-07-23T08:05:30.285Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://giadung24h.vn/wishlist</loc><lastmod>2026-07-23T08:05:30.285Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
 </urlset>

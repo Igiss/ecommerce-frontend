@@ -9,7 +9,7 @@ Disallow: /profile
 Disallow: /checkout
 
 # Host
-Host: https://cupshop.vn
+Host: https://giadung24h.vn
 
 # Sitemaps
-Sitemap: https://cupshop.vn/sitemap.xml
+Sitemap: https://giadung24h.vn/sitemap.xml

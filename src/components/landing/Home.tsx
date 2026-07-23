@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react'
 import { getProducts } from '@/lib/api/products.service'
+import { getActiveBanners, type Banner } from '@/lib/api/banners.service'
 import type { Product } from '@/types/product'
 import { ProductCard } from './ProductCard'
-import { Sparkles, ArrowDown, Award, ShieldCheck, Truck, ChevronLeft, ChevronRight } from 'lucide-react'
+import { FlashSaleSection } from './FlashSaleSection'
+import { PersonalizedRecommendations } from './PersonalizedRecommendations'
+import { FeaturedProducts } from './FeaturedProducts'
+import { RecentlyViewedSection } from './RecentlyViewedSection'
+import Link from 'next/link'
+import { Sparkles, ArrowDown, ArrowRight, Award, ShieldCheck, Truck, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface HomeProps {}
 
-const CATEGORIES = ['Tất cả', 'Ly sứ', 'Ly giữ nhiệt', 'Ly thủy tinh', 'Ly nhựa']
+const CATEGORIES = ['Tất cả', 'Thiết bị nhà bếp', 'Đồ dùng gia đình', 'Đồ gia dụng thông minh', 'Ly cốc & Bình giữ nhiệt']
 
 const SLIDES = [
   {
@@ -41,6 +47,7 @@ const SLIDES = [
 export function Home(props: HomeProps) {
   const [allProducts, setAllProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
+  const [dynamicBanners, setDynamicBanners] = useState<Banner[]>([])
   const [selectedCategory, setSelectedCategory] = useState('Tất cả')
   const [loading, setLoading] = useState(true)
   const [activeSlide, setActiveSlide] = useState(0)
@@ -54,6 +61,30 @@ export function Home(props: HomeProps) {
     setPageInput(String(currentPage))
   }, [currentPage])
 
+  // Fetch active banners for homepage slider
+  useEffect(() => {
+    getActiveBanners()
+      .then((data: any) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setDynamicBanners(data)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const currentSlides = dynamicBanners.length > 0
+    ? dynamicBanners.map((b) => ({
+        badge: b.badge || 'Khuyến mãi đặc biệt',
+        title: b.title || '',
+        description: b.description || '',
+        image: b.imageUrl || b.bgImageUrl || '',
+        bgImage: b.bgImageUrl || b.imageUrl || '',
+        linkUrl: b.linkUrl || '',
+        tagline1: b.tagline1 || '',
+        tagline2: b.tagline2 || ''
+      }))
+    : SLIDES
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
@@ -61,7 +92,6 @@ export function Home(props: HomeProps) {
     const xPercent = (x / rect.width) - 0.5
     const yPercent = (y / rect.height) - 0.5
     
-    // Very subtle 3D tilt limited to max 5 degrees
     setParallax({
       rotateX: -yPercent * 5,
       rotateY: xPercent * 5,
@@ -89,7 +119,6 @@ export function Home(props: HomeProps) {
           }
         }
         
-        // Normalize product ids
         const normalized = list.map((item: any) => ({
           ...item,
           id: String(item.id || item._id)
@@ -108,12 +137,12 @@ export function Home(props: HomeProps) {
       handleNextSlide()
     }, 5000)
     return () => clearInterval(timer)
-  }, [activeSlide])
+  }, [activeSlide, currentSlides.length])
 
   const handleNextSlide = () => {
     setIsTransitioning(true)
     setTimeout(() => {
-      setActiveSlide((prev) => (prev + 1) % SLIDES.length)
+      setActiveSlide((prev) => (prev + 1) % currentSlides.length)
       setIsTransitioning(false)
     }, 300)
   }
@@ -121,7 +150,7 @@ export function Home(props: HomeProps) {
   const handlePrevSlide = () => {
     setIsTransitioning(true)
     setTimeout(() => {
-      setActiveSlide((prev) => (prev - 1 + SLIDES.length) % SLIDES.length)
+      setActiveSlide((prev) => (prev - 1 + currentSlides.length) % currentSlides.length)
       setIsTransitioning(false)
     }, 300)
   }
@@ -177,7 +206,7 @@ export function Home(props: HomeProps) {
       >
         {/* Slides Container */}
         <div className="relative w-full">
-          {SLIDES.map((slide, idx) => (
+          {currentSlides.map((slide, idx) => (
             <div 
               key={idx} 
               className={`w-full flex items-center transition-all duration-1000 ease-in-out py-16 sm:py-20 lg:py-24 ${
@@ -201,79 +230,82 @@ export function Home(props: HomeProps) {
               <div className="absolute top-1/4 left-1/4 h-72 w-72 rounded-full bg-amber-400/5 blur-3xl animate-pulse" style={{ animationDuration: '12s' }} />
               <div className="absolute bottom-1/4 right-1/4 h-80 w-80 rounded-full bg-orange-400/5 blur-3xl animate-pulse" style={{ animationDuration: '15s' }} />
               
-              <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 py-4 sm:py-8 lg:py-12">
-                <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[1fr_1fr]">
+              {/* Content Row Container */}
+              <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-12">
                   
-                  {/* COLUMN 1: TEXT CONTENT WITH STAGGERED FADE-IN */}
-                  <div className="flex w-full min-w-0 flex-col items-start gap-6 text-left max-w-xl lg:max-w-none">
-                    <span 
-                      className={`inline-flex items-center gap-2 rounded-full bg-amber-500/20 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-amber-300 border border-amber-500/30 transition-all duration-700 ease-out ${
-                        idx === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
-                      }`}
-                      style={{ 
-                        transitionDelay: idx === activeSlide ? '100ms' : '0ms'
-                      }}
-                    >
-                      <Sparkles className="h-3.5 w-3.5 text-amber-400 animate-spin-slow" />
-                      {slide.badge}
-                    </span>
+                  {/* COLUMN 1: TEXT & CALL TO ACTION */}
+                  <div className="flex flex-col space-y-5 text-left">
                     
-                    <h1 
-                      className={`text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-black leading-tight tracking-tight max-w-lg lg:max-w-none bg-clip-text text-transparent bg-gradient-to-r from-white via-stone-100 to-amber-200 transition-all duration-700 ease-out ${
-                        idx === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
-                      }`}
-                      style={{ 
-                        transitionDelay: idx === activeSlide ? '250ms' : '0ms'
-                      }}
-                    >
-                      {slide.title}
-                    </h1>
-                    
-                    <p 
-                      className={`text-sm sm:text-base leading-relaxed text-stone-200 max-w-md transition-all duration-700 ease-out ${
-                        idx === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
-                      }`}
-                      style={{ 
-                        transitionDelay: idx === activeSlide ? '400ms' : '0ms'
-                      }}
-                    >
-                      {slide.description}
-                    </p>
-                    
+                    {/* Badge Pill */}
+                    <div>
+                      <span className={`inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-amber-200 shadow-sm backdrop-blur-md transition-all duration-700 ease-out ${
+                        idx === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+                      }`}>
+                        <Sparkles className="h-3.5 w-3.5 text-amber-300 animate-pulse" />
+                        {slide.badge}
+                      </span>
+                    </div>
+
+                    {/* Headline */}
+                    {slide.title && (
+                      <h1 
+                        className={`text-3xl font-black text-white sm:text-4xl lg:text-5xl lg:leading-[1.15] tracking-tight transition-all duration-700 ease-out ${
+                          idx === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
+                        }`}
+                        style={{ 
+                          transitionDelay: idx === activeSlide ? '150ms' : '0ms'
+                        }}
+                      >
+                        {slide.title}
+                      </h1>
+                    )}
+
+                    {/* Description */}
+                    {slide.description && (
+                      <p 
+                        className={`text-sm sm:text-base font-normal text-stone-250/90 leading-relaxed max-w-xl transition-all duration-700 ease-out ${
+                          idx === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
+                        }`}
+                        style={{ 
+                          transitionDelay: idx === activeSlide ? '300ms' : '0ms'
+                        }}
+                      >
+                        {slide.description}
+                      </p>
+                    )}
+
+                    {/* Action Button & Link */}
                     <div 
-                      className={`flex flex-wrap gap-3.5 pt-2 transition-all duration-700 ease-out ${
+                      className={`flex flex-wrap items-center gap-4 pt-2 transition-all duration-700 ease-out ${
                         idx === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
                       }`}
                       style={{ 
-                        transitionDelay: idx === activeSlide ? '550ms' : '0ms'
+                        transitionDelay: idx === activeSlide ? '450ms' : '0ms'
                       }}
                     >
                       <a
-                        href="#products-section"
-                        className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 px-6 py-3.5 text-xs font-black uppercase tracking-wider text-white shadow-md hover:shadow-lg transition-all hover:scale-102 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                        href={(slide as any).linkUrl || '#products-grid'}
+                        className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 px-7 py-3.5 text-xs font-black uppercase tracking-wider text-white shadow-xl hover:from-amber-500 hover:to-amber-600 transition-all cursor-pointer active:scale-95"
                       >
-                        Mua sắm ngay
-                        <ArrowDown className="h-4 w-4 animate-bounce" />
-                      </a>
-                      <a
-                        href="/about"
-                        className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 backdrop-blur-md px-6 py-3.5 text-xs font-black uppercase tracking-wider text-white shadow-xs hover:shadow-md transition-all hover:bg-white/20 hover:border-white/45 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-                      >
-                        Tìm hiểu thêm
+                        Khám phá ngay
                       </a>
                     </div>
-                    
-                    <div 
-                      className={`flex flex-wrap gap-3 pt-2 text-xs font-bold text-stone-255 transition-all duration-700 ease-out ${
-                        idx === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
-                      }`}
-                      style={{ 
-                        transitionDelay: idx === activeSlide ? '700ms' : '0ms'
-                      }}
-                    >
-                      <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 shadow-2xs backdrop-blur-md text-stone-200">{slide.tagline1}</span>
-                      <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 shadow-2xs backdrop-blur-md text-stone-200">{slide.tagline2}</span>
-                    </div>
+
+                    {/* Taglines / Features */}
+                    {(slide.tagline1 || slide.tagline2) && (
+                      <div 
+                        className={`flex flex-wrap gap-3 pt-2 text-xs font-bold text-stone-255 transition-all duration-700 ease-out ${
+                          idx === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
+                        }`}
+                        style={{ 
+                          transitionDelay: idx === activeSlide ? '700ms' : '0ms'
+                        }}
+                      >
+                        {slide.tagline1 && <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 shadow-2xs backdrop-blur-md text-stone-200">{slide.tagline1}</span>}
+                        {slide.tagline2 && <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 shadow-2xs backdrop-blur-md text-stone-200">{slide.tagline2}</span>}
+                      </div>
+                    )}
                   </div>
 
                   {/* COLUMN 2: ANIMATED 3D IMAGE SHOWCASE */}
@@ -294,22 +326,21 @@ export function Home(props: HomeProps) {
                           transform: idx === activeSlide 
                             ? `perspective(1000px) rotateX(${parallax.rotateX}deg) rotateY(${parallax.rotateY}deg)`
                             : 'perspective(1000px) rotateX(0deg) rotateY(0deg)',
-                          transition: 'transform 0.15s ease-out, box-shadow 0.3s ease-out'
                         }}
                       >
-                        {/* Shine reflection overlay moving with mouse */}
+                        {/* Dynamic Glass Shine Overlay */}
                         <div 
-                          className="absolute inset-0 pointer-events-none z-10 opacity-20 mix-blend-overlay transition-opacity duration-300"
+                          className="pointer-events-none absolute inset-0 z-10 transition-opacity duration-300"
                           style={{
-                            background: `radial-gradient(circle 140px at ${parallax.shineX}% ${parallax.shineY}%, rgba(255, 255, 255, 0.8), transparent 70%)`
+                            background: `radial-gradient(circle at ${parallax.shineX}% ${parallax.shineY}%, rgba(255, 255, 255, 0.35) 0%, transparent 60%)`,
                           }}
                         />
 
                         <img
                           src={slide.image}
-                          alt={slide.title}
+                          alt={slide.title || 'Banner'}
                           className="relative h-full w-full object-cover object-center animate-gentle-float"
-                          style={{ aspectRatio: '4/3' }}
+                          style={{ aspectRatio: '16/9' }}
                         />
                       </div>
                     </div>
@@ -343,7 +374,7 @@ export function Home(props: HomeProps) {
 
           {/* Pagination dots */}
           <div className="flex items-center gap-2 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-            {SLIDES.map((_, idx) => (
+            {currentSlides.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSelectSlide(idx)}
@@ -394,29 +425,22 @@ export function Home(props: HomeProps) {
         </div>
       </section>
 
+      {/* FLASH SALE SECTION */}
+      <FlashSaleSection products={allProducts} />
+
+      {/* PERSONALIZED RECOMMENDATIONS SECTION */}
+      <PersonalizedRecommendations products={allProducts} />
+
+      {/* FEATURED & BESTSELLERS SECTION */}
+      <FeaturedProducts products={allProducts} />
+
       {/* PRODUCTS CATALOG SECTION */}
       <section id="products-section" className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mb-10 flex flex-col items-center gap-4 text-center">
+        <div className="mb-10 flex flex-col items-center gap-2 text-center">
           <h2 className="text-3xl font-extrabold tracking-tight text-stone-900">Danh mục sản phẩm</h2>
           <p className="max-w-lg text-sm text-stone-500">
-            Khám phá các sản phẩm cốc đa dạng và bắt đầu sáng tạo thiết kế riêng của bạn.
+            Khám phá các thiết bị gia dụng nhà bếp & đồ dùng gia đình thông minh chính hãng tại Gia Dụng 24h.
           </p>
-
-          <div className="mt-4 flex flex-wrap justify-center gap-2 rounded-xl border border-stone-200/60 bg-stone-100/80 p-1 backdrop-blur-sm">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`rounded-lg px-4 py-2 text-xs font-bold transition-all focus:outline-none ${
-                  selectedCategory === cat
-                    ? 'bg-amber-800 text-white shadow-sm'
-                    : 'text-stone-600 hover:text-amber-800'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
         </div>
 
         {loading ? (
@@ -435,102 +459,22 @@ export function Home(props: HomeProps) {
               ))}
             </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="mt-12 flex flex-wrap justify-center items-center gap-2">
-                {/* First Page Button */}
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
-                  title="Trang đầu tiên"
-                >
-                  Đầu
-                </button>
-
-                {/* Previous Page Button */}
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3.5 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
-                >
-                  Trước
-                </button>
-
-                {/* Page Number Buttons */}
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`h-9 w-9 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      currentPage === page
-                        ? 'bg-amber-800 text-white shadow-xs'
-                        : 'border border-stone-200 bg-white hover:bg-stone-50 text-stone-700'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-
-                {/* Next Page Button */}
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-3.5 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
-                >
-                  Sau
-                </button>
-
-                {/* Last Page Button */}
-                <button
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:pointer-events-none text-xs font-bold text-stone-700 transition-all cursor-pointer"
-                  title="Trang cuối cùng"
-                >
-                  Cuối
-                </button>
-
-                {/* Jump to Page Input */}
-                <div className="flex items-center gap-1.5 ml-2 border-l border-stone-200 pl-4">
-                  <span className="text-xs text-stone-500">Đến trang:</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={totalPages}
-                    value={pageInput}
-                    onChange={(e) => setPageInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const val = parseInt(pageInput, 10);
-                        if (!isNaN(val) && val >= 1 && val <= totalPages) {
-                          setCurrentPage(val);
-                        } else {
-                          setPageInput(String(currentPage));
-                        }
-                      }
-                    }}
-                    className="w-12 h-9 rounded-xl border border-stone-200 bg-white text-center text-xs font-bold text-stone-700 focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <button
-                    onClick={() => {
-                      const val = parseInt(pageInput, 10);
-                      if (!isNaN(val) && val >= 1 && val <= totalPages) {
-                        setCurrentPage(val);
-                      } else {
-                        setPageInput(String(currentPage));
-                      }
-                    }}
-                    className="px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-xs font-bold text-stone-700 cursor-pointer active:scale-95 transition-all"
-                  >
-                    Đi
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* View All Products Redirect Button */}
+            <div className="mt-12 flex justify-center">
+              <Link
+                href="/products"
+                className="group inline-flex items-center gap-2 rounded-2xl bg-amber-800 hover:bg-amber-950 px-8 py-4 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-amber-900/20 hover:shadow-xl transition-all active:scale-95 cursor-pointer"
+              >
+                <span>Xem tất cả sản phẩm</span>
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
           </div>
         )}
       </section>
+
+      {/* RECENTLY VIEWED SECTION */}
+      <RecentlyViewedSection products={allProducts} />
     </div>
   )
 }

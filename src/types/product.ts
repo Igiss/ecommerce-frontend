@@ -3,6 +3,8 @@ export interface Product {
   name: string
   description: string
   price: number
+  originalPrice?: number
+  rating?: number
   salePrice?: number
   saleStartDate?: string
   saleEndDate?: string
@@ -12,6 +14,8 @@ export interface Product {
   categoryId?: any
   modelUrl?: string
   soldCount?: number
+  createdAt?: string | Date
+  updatedAt?: string | Date
   createdBy?: {
     id?: string
     _id?: string

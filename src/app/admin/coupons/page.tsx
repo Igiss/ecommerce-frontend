@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getCoupons, createCoupon, updateCoupon, deleteCoupon } from '@/lib/api/admin.service'
-import { Plus, Edit2, Trash2, X, AlertCircle, Calendar, Ticket } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, AlertCircle, Calendar, Ticket, Globe, ShieldCheck } from 'lucide-react'
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<any[]>([])
@@ -32,7 +32,7 @@ export default function AdminCouponsPage() {
       .then((data: any) => {
         setCoupons(data)
       })
-      .catch((err) => {
+      .catch(() => {
         setError('Không thể tải danh sách mã giảm giá.')
       })
       .finally(() => setLoading(false))
@@ -65,7 +65,6 @@ export default function AdminCouponsPage() {
     setDiscountAmount(coupon.discountAmount || 0)
     setMinOrderValue(coupon.minOrderValue || 0)
     setMaxDiscount(coupon.maxDiscount || 0)
-    // Format date string from iso to yyyy-MM-dd
     const formattedDate = coupon.expiryDate ? new Date(coupon.expiryDate).toISOString().split('T')[0] : ''
     setExpiryDate(formattedDate)
     setUsageLimit(coupon.usageLimit || 100)
@@ -76,7 +75,7 @@ export default function AdminCouponsPage() {
 
   // Handle delete
   const handleDeleteClick = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa mã giảm giá này không?')) return
+    if (!window.confirm('Bạn có chắc chắn muốn xóa mã giảm giá toàn sàn này không?')) return
     try {
       await deleteCoupon(id)
       fetchCouponsList()
@@ -103,9 +102,16 @@ export default function AdminCouponsPage() {
       return
     }
 
+    const rawCleanCode = code.trim().toUpperCase()
+    if (!rawCleanCode) {
+      setFormError('Vui lòng nhập mã giảm giá.')
+      setFormLoading(false)
+      return
+    }
+
     try {
       const couponData = {
-        code: code.trim().toUpperCase(),
+        code: rawCleanCode,
         discountType,
         discountAmount,
         minOrderValue,
@@ -135,21 +141,26 @@ export default function AdminCouponsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-stone-900 tracking-tight">Quản lý Mã giảm giá</h1>
-          <p className="text-xs text-stone-500 mt-1">Tạo các chương trình khuyến mãi, giảm giá phần trăm hoặc số tiền cố định cho đơn hàng.</p>
+          <h1 className="text-2xl font-black text-stone-900 tracking-tight flex items-center gap-2">
+            <Ticket className="h-6 w-6 text-amber-800" />
+            Quản lý Mã giảm giá Toàn Hệ Thống (Admin)
+          </h1>
+          <p className="text-xs text-stone-500 mt-1">
+            Tạo mã Voucher khuyến mãi áp dụng cho TOÀN BỘ sản phẩm của tất cả các Shop trên toàn sàn.
+          </p>
         </div>
         <button
           onClick={handleAddClick}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white px-4 py-2.5 text-xs font-bold shadow-md transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white px-4 py-2.5 text-xs font-bold shadow-md transition-colors cursor-pointer"
         >
           <Plus className="h-4.5 w-4.5" />
-          Tạo mã mới
+          Tạo mã Toàn Sàn mới
         </button>
       </div>
 
       {error && (
         <div className="flex items-center gap-2 rounded-lg bg-red-50 p-4 text-sm text-red-700 border border-red-150">
-          <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
+          <AlertCircle className="h-5 w-5 shrink-0 text-red-650" />
           <span>{error}</span>
         </div>
       )}
@@ -161,7 +172,7 @@ export default function AdminCouponsPage() {
         </div>
       ) : coupons.length === 0 ? (
         <div className="text-center py-16 border border-stone-200 border-dashed rounded-2xl bg-white">
-          <p className="text-stone-550 text-sm">Chưa có mã giảm giá nào được tạo.</p>
+          <p className="text-stone-550 text-sm">Chưa có mã giảm giá toàn hệ thống nào.</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-xs">
@@ -169,6 +180,7 @@ export default function AdminCouponsPage() {
             <thead>
               <tr className="border-b border-stone-150 text-xs font-bold text-stone-550 uppercase tracking-wider bg-stone-50/50">
                 <th className="py-3.5 px-6">Mã Code</th>
+                <th className="py-3.5 px-6">Phạm vi áp dụng</th>
                 <th className="py-3.5 px-6">Loại giảm</th>
                 <th className="py-3.5 px-6">Mức giảm</th>
                 <th className="py-3.5 px-6">Đơn tối thiểu</th>
@@ -182,12 +194,20 @@ export default function AdminCouponsPage() {
               {coupons.map((coupon) => {
                 const isExpired = new Date(coupon.expiryDate) < new Date()
                 const dateStr = new Date(coupon.expiryDate).toLocaleDateString('vi-VN')
-                
+
                 return (
                   <tr key={coupon._id || coupon.id} className="hover:bg-stone-50/45 transition-colors">
-                    <td className="py-3.5 px-6 font-mono text-xs font-extrabold text-amber-800 select-all flex items-center gap-1.5 mt-1">
-                      <Ticket className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                      {coupon.code}
+                    <td className="py-3.5 px-6 font-mono text-xs font-extrabold text-amber-800 select-all">
+                      <div className="flex items-center gap-1.5">
+                        <Ticket className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                        <span>{coupon.code}</span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-6 text-xs">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-50 text-amber-900 border border-amber-200 font-bold">
+                        <Globe className="h-3 w-3 text-amber-700 shrink-0" />
+                        Toàn hệ thống
+                      </span>
                     </td>
                     <td className="py-3.5 px-6 text-xs text-stone-600">
                       {coupon.discountType === 'percentage' ? 'Phần trăm (%)' : 'Số tiền cố định'}
@@ -223,14 +243,14 @@ export default function AdminCouponsPage() {
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleEditClick(coupon)}
-                          className="p-2 text-stone-400 hover:text-amber-800 transition-colors"
+                          className="p-2 text-stone-400 hover:text-amber-800 transition-colors cursor-pointer"
                           title="Sửa Coupon"
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteClick(coupon._id || coupon.id)}
-                          className="p-2 text-stone-400 hover:text-red-655 transition-colors"
+                          className="p-2 text-stone-400 hover:text-red-655 transition-colors cursor-pointer"
                           title="Xóa Coupon"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -247,14 +267,14 @@ export default function AdminCouponsPage() {
 
       {/* Modal Dialog Form */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-fade-in">
           <div className="w-full max-w-lg bg-white rounded-2xl border border-stone-200 shadow-2xl flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
               <h3 className="text-base font-bold text-stone-900">
-                {editingCoupon ? 'Cập nhật mã giảm giá' : 'Tạo mã giảm giá mới'}
+                {editingCoupon ? 'Cập nhật mã giảm giá Toàn Sàn' : 'Tạo mã giảm giá Toàn Sàn mới'}
               </h3>
-              <button onClick={() => setIsOpen(false)} className="text-stone-400 hover:text-stone-600 transition-colors">
+              <button onClick={() => setIsOpen(false)} className="text-stone-400 hover:text-stone-600 transition-colors cursor-pointer">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -263,62 +283,68 @@ export default function AdminCouponsPage() {
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
               {formError && (
                 <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3.5 text-xs text-red-755 border border-red-100">
-                  <AlertCircle className="h-4.5 w-4.5 text-red-600" />
+                  <AlertCircle className="h-4.5 w-4.5 text-red-600 shrink-0" />
                   <span>{formError}</span>
                 </div>
               )}
 
+              {/* ADMIN SCOPE NOTICE */}
+              <div className="bg-amber-50 p-3.5 rounded-xl border border-amber-200 flex items-center gap-2.5 text-xs text-amber-900">
+                <ShieldCheck className="h-5 w-5 text-amber-700 shrink-0" />
+                <span>Mã giảm giá do Admin tạo sẽ tự động áp dụng cho <strong>TOÀN BỘ sản phẩm của tất cả Shop</strong> trong hệ thống.</span>
+              </div>
+
               <div>
-                <label className="block text-xs font-semibold text-stone-555 uppercase">Mã giảm giá (Code)</label>
+                <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Mã giảm giá (Code)</label>
                 <input
                   type="text"
                   required
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  placeholder="KM30K, SPECIAL10..."
-                  className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm uppercase placeholder:text-stone-400 focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  placeholder="ALLSALE2026, FREESHIP..."
+                  className="block w-full rounded-xl border border-stone-300 px-3.5 py-2.5 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 uppercase font-mono"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-555 uppercase">Loại chiết khấu</label>
+                  <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Loại chiết khấu</label>
                   <select
                     value={discountType}
                     onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
-                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none"
+                    className="block w-full rounded-xl border border-stone-300 px-3.5 py-2 text-sm focus:border-amber-600 focus:outline-none"
                   >
                     <option value="percentage">Phần trăm (%)</option>
                     <option value="fixed">Số tiền cố định (đ)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-555 uppercase">Mức giảm giá</label>
+                  <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Mức giảm giá</label>
                   <input
                     type="number"
                     required
                     min="0"
                     value={discountAmount}
                     onChange={(e) => setDiscountAmount(Number(e.target.value))}
-                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                    className="block w-full rounded-xl border border-stone-300 px-3.5 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-555 uppercase">Đơn tối thiểu (đ)</label>
+                  <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Đơn tối thiểu (đ)</label>
                   <input
                     type="number"
                     required
                     min="0"
                     value={minOrderValue}
                     onChange={(e) => setMinOrderValue(Number(e.target.value))}
-                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                    className="block w-full rounded-xl border border-stone-300 px-3.5 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-555 uppercase">
+                  <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">
                     Giảm tối đa (đ) {discountType === 'fixed' && '(Không cần)'}
                   </label>
                   <input
@@ -327,31 +353,31 @@ export default function AdminCouponsPage() {
                     disabled={discountType === 'fixed'}
                     value={maxDiscount}
                     onChange={(e) => setMaxDiscount(Number(e.target.value))}
-                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 disabled:bg-stone-100 disabled:text-stone-400"
+                    className="block w-full rounded-xl border border-stone-300 px-3.5 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600 disabled:bg-stone-100 disabled:text-stone-400"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-555 uppercase">Ngày hết hạn</label>
+                  <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Ngày hết hạn</label>
                   <input
                     type="date"
                     required
                     value={expiryDate}
                     onChange={(e) => setExpiryDate(e.target.value)}
-                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                    className="block w-full rounded-xl border border-stone-300 px-3.5 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-555 uppercase">Tổng giới hạn lượt dùng</label>
+                  <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Tổng giới hạn lượt dùng</label>
                   <input
                     type="number"
                     required
                     min="1"
                     value={usageLimit}
                     onChange={(e) => setUsageLimit(Number(e.target.value))}
-                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                    className="block w-full rounded-xl border border-stone-300 px-3.5 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
                   />
                 </div>
               </div>
@@ -359,12 +385,12 @@ export default function AdminCouponsPage() {
               <div className="flex items-center gap-2 pt-2">
                 <input
                   type="checkbox"
-                  id="isActive"
+                  id="isActiveAdmin"
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="h-4 w-4 rounded-sm border-stone-300 text-amber-700 focus:ring-amber-600"
+                  className="h-4 w-4 rounded-sm border-stone-300 text-amber-700 focus:ring-amber-600 cursor-pointer"
                 />
-                <label htmlFor="isActive" className="text-xs font-semibold text-stone-750 select-none">
+                <label htmlFor="isActiveAdmin" className="text-xs font-semibold text-stone-750 select-none cursor-pointer">
                   Kích hoạt mã giảm giá hoạt động ngay lập tức
                 </label>
               </div>
@@ -374,14 +400,14 @@ export default function AdminCouponsPage() {
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="rounded-lg border border-stone-300 px-4 py-2 text-xs font-bold text-stone-700 hover:bg-stone-50 transition-colors"
+                  className="rounded-xl border border-stone-300 px-4 py-2.5 text-xs font-bold text-stone-750 hover:bg-stone-50 transition-colors cursor-pointer"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="rounded-lg bg-amber-800 hover:bg-amber-900 transition-colors text-white px-4 py-2 text-xs font-bold disabled:bg-stone-400 shadow-sm"
+                  className="rounded-xl bg-amber-800 hover:bg-amber-900 transition-colors text-white px-5 py-2.5 text-xs font-bold disabled:bg-stone-400 shadow-sm cursor-pointer"
                 >
                   {formLoading ? 'Đang lưu...' : 'Lưu lại'}
                 </button>
