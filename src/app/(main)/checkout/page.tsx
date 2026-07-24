@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { useCartStore } from '@/store/cart.store'
-import { createOrder, createVNPayUrl, createSepayQr, createSepayCheckout } from '@/lib/api/orders.service'
+import { createOrder, createVNPayUrl, createSepayCheckout, submitSepayCheckoutForm } from '@/lib/api/orders.service'
 import { validateCoupon, getActiveCoupons } from '@/lib/api/coupons.service'
 import { getAddresses } from '@/lib/api/address.service'
 import { AlertCircle, Ticket, CreditCard, MapPin, ShieldCheck, QrCode } from 'lucide-react'
@@ -259,15 +259,12 @@ export default function CheckoutPage() {
       const orderId = createdOrder._id || createdOrder.id
 
       if (paymentMethod === 'SePay') {
-        const sepayRes = await createSepayQr(orderId)
-        if (sepayRes) {
-          setNewOrderId(orderId)
-          setSepayQrData(sepayRes)
-          setIsSuccess(true)
-          setShowSepayModal(true)
+        const checkout = await createSepayCheckout(orderId)
+        if (checkout?.checkoutURL && checkout.checkoutFormfields) {
           clearCart()
+          submitSepayCheckoutForm(checkout)
         } else {
-          setError('Không thể khởi tạo mã QR SePay. Vui lòng thử lại sau.')
+          setError('Không thể khởi tạo cổng thanh toán SePay. Vui lòng thử lại sau.')
         }
         setLoading(false)
         return

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getOrderById, createVNPayUrl, createSepayQr, cancelOrder } from '@/lib/api/orders.service'
+import { getOrderById, createVNPayUrl, createSepayCheckout, submitSepayCheckoutForm, cancelOrder } from '@/lib/api/orders.service'
 import { AlertCircle, Calendar, MapPin, CreditCard, CreditCard as CardIcon, XCircle, Star, X, Loader2, Clock } from 'lucide-react'
 import { ReviewModal } from '@/components/UI/ReviewModal'
 import { ReturnModal } from '@/components/UI/ReturnModal'
@@ -55,12 +55,11 @@ export function OrderDetailModal({ orderId, isOpen, onClose, onOrderUpdated }: O
     setError('')
     try {
       if (order.paymentMethod === 'SEPAY' || order.paymentMethod === 'SePay') {
-        const res = await createSepayQr(order.id)
-        if (res && res.qrUrl) {
-          setSepayQrData(res)
-          setShowSepayModal(true)
+        const checkout = await createSepayCheckout(order.id)
+        if (checkout?.checkoutURL && checkout.checkoutFormfields) {
+          submitSepayCheckoutForm(checkout)
         } else {
-          setError('Không thể tạo mã VietQR SePay.')
+          setError('Không thể khởi tạo cổng thanh toán SePay.')
         }
       } else {
         const vnpayRes = await createVNPayUrl(order.id)
