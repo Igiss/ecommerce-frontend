@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from 'react'
 import { getActiveCoupons } from '@/lib/api/coupons.service'
-import { Ticket, ChevronLeft, Copy, Check, Clock, Calendar, ShieldCheck, BadgeInfo, AlertCircle, ShoppingBag } from 'lucide-react'
+import { Ticket, ChevronLeft, Copy, Check, Clock, Calendar, BadgeInfo, AlertCircle, ShoppingBag, Tag, Percent, Store } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -73,6 +73,16 @@ export default function VoucherDetailPage({ params }: VoucherDetailPageProps) {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
   }
 
+  const formatDateTime = (dateStr: string) => {
+    const d = new Date(dateStr)
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    return `${day}/${month}/${year} ${hours}:${minutes}`
+  }
+
   if (!mounted || loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -105,134 +115,201 @@ export default function VoucherDetailPage({ params }: VoucherDetailPageProps) {
   const isExpired = daysLeftText === 'Đã hết hạn'
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
+    <div className="mx-auto max-w-2xl px-4 py-3 font-sans">
       {/* Back Link */}
       <Link
         href="/vouchers"
-        className="inline-flex items-center gap-1.5 text-stone-500 hover:text-stone-900 transition-colors text-xs font-bold mb-6"
+        className="inline-flex items-center gap-1 text-stone-500 hover:text-stone-900 transition-colors text-xs font-bold mb-2.5"
       >
-        <ChevronLeft className="h-4.5 w-4.5" />
+        <ChevronLeft className="h-4 w-4" />
         Quay lại Kho Voucher
       </Link>
 
-      {/* Main Card */}
-      <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden flex flex-col">
+      <div className="space-y-3">
         
-        {/* Ticket Header section */}
-        <div className="bg-gradient-to-r from-amber-700 to-amber-900 text-white p-8 relative flex flex-col items-center justify-center text-center">
-          <div className="absolute top-4 left-4 bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full backdrop-blur-xs flex items-center gap-1">
-            <Ticket className="h-3 w-3" />
-            Voucher của Cửa hàng
-          </div>
+        {/* Hero Voucher Card */}
+        <div className="w-full bg-white rounded-2xl relative overflow-hidden flex flex-col md:flex-row md:h-40 shadow-md border border-amber-200/50">
+          
+          {/* Left & Center Main Ticket - Light Cream Gold Background */}
+          <div className="flex-1 bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-amber-50/20 p-4.5 flex items-center justify-between gap-4 relative min-w-0">
+            {/* Left Edge Cutout */}
+            <div className="absolute top-1/2 -translate-y-1/2 -left-3.5 h-7 w-7 bg-stone-50 rounded-full border-r border-amber-250/20 z-10 hidden md:block" />
 
-          <span className="text-5xl font-black mt-4 tracking-tight">
-            {isPercentage ? `${coupon.discountAmount}%` : formatPrice(coupon.discountAmount)}
-          </span>
-          <span className="text-xs font-bold uppercase tracking-widest mt-2 bg-white/25 px-3 py-1 rounded-lg">
-            Mã Giảm Giá Chi Tiết
-          </span>
-
-          {/* Ticket semi circles cutout */}
-          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-1 w-full justify-between px-10">
-            <div className="h-6 w-6 bg-white rounded-full" />
-            <div className="h-6 w-6 bg-white rounded-full" />
-            <div className="h-6 w-6 bg-white rounded-full" />
-          </div>
-        </div>
-
-        {/* Details section */}
-        <div className="p-8 space-y-6 bg-amber-50/5">
-          <div className="space-y-4">
-            
-            {/* Expiry remaining banner */}
-            <div className={`flex items-center gap-2 rounded-2xl p-4 border text-xs font-bold ${
-              isExpired 
-                ? 'bg-red-50 text-red-700 border-red-150' 
-                : 'bg-amber-100/40 text-amber-900 border-amber-200/50'
-            }`}>
-              <Clock className="h-4.5 w-4.5 text-amber-700 shrink-0" />
-              <span>Thời gian hiệu lực: {daysLeftText}</span>
-            </div>
-
-            {/* Coupon Code display with Copy */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-stone-200/80 rounded-2xl bg-white p-4.5 shadow-3xs">
-              <div>
-                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Mã code giảm giá</span>
-                <span className="text-lg font-black text-amber-800 font-mono tracking-wide select-all">{coupon.code}</span>
+            <div className="flex items-center gap-4 min-w-0">
+              {/* Gift Box Icon */}
+              <div className="hidden sm:flex items-center justify-center h-16 w-16 rounded-xl bg-gradient-to-br from-orange-400 to-amber-600 shadow-sm shrink-0 relative animate-pulse">
+                {/* Ribbon overlay */}
+                <div className="absolute inset-0 m-auto h-full w-1.5 bg-amber-200/60" />
+                <div className="absolute inset-0 m-auto w-full h-1.5 bg-amber-200/60" />
+                <Ticket className="h-8 w-8 text-white drop-shadow-sm z-10" />
               </div>
-              <button
-                onClick={handleCopyCode}
-                className={`w-full sm:w-auto py-2 px-5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm hover:shadow cursor-pointer ${
-                  copied 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-amber-800 hover:bg-amber-900 text-white'
-                }`}
-              >
-                {copied ? (
-                  <>
-                    <Check className="h-3.5 w-3.5" />
-                    Đã sao chép
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3.5 w-3.5" />
-                    Sao chép mã
-                  </>
-                )}
-              </button>
+
+              {/* Left Text */}
+              <div className="space-y-0.5">
+                <span className="text-[8px] font-black uppercase tracking-wider text-amber-800 block">Voucher</span>
+                <span className="text-[8px] font-bold text-amber-700/80 border-b border-amber-700/20 pb-0.5 inline-block">CỦA CỬA HÀNG</span>
+                <h3 className="text-sm md:text-base font-black text-amber-950 mt-0.5 leading-tight tracking-tight">
+                  ƯU ĐÃI<br />ĐẶC BIỆT
+                </h3>
+              </div>
             </div>
 
-            {/* Terms List */}
-            <div className="bg-white rounded-2xl border border-stone-150 p-6 space-y-4">
-              <h4 className="text-xs font-extrabold text-stone-850 uppercase tracking-wider border-b border-stone-100 pb-2">Điều kiện áp dụng</h4>
+            {/* Center Text (Discount Rate) */}
+            <div className="flex flex-col items-center text-center shrink-0 min-w-[130px]">
+              <div className="flex items-baseline text-amber-900 leading-none">
+                <span className="text-3xl md:text-4xl font-black tracking-tight">
+                  {isPercentage ? `${coupon.discountAmount}%` : `${coupon.discountAmount / 1000}k`}
+                </span>
+                <span className="text-xs font-black uppercase tracking-wider ml-0.5">OFF</span>
+              </div>
               
-              <div className="space-y-3.5 text-xs text-stone-600 font-medium">
-                <div className="flex justify-between items-start gap-4">
-                  <span className="text-stone-400 shrink-0">Giá trị đơn hàng</span>
-                  <span className="text-stone-850 font-bold text-right">Đơn tối thiểu từ {formatPrice(coupon.minOrderValue)}</span>
-                </div>
-                
-                {coupon.maxDiscount && (
-                  <div className="flex justify-between items-start gap-4">
-                    <span className="text-stone-400 shrink-0">Mức giảm tối đa</span>
-                    <span className="text-stone-850 font-bold text-right">{formatPrice(coupon.maxDiscount)}</span>
-                  </div>
-                )}
+              <span className="inline-block text-[8px] font-black uppercase tracking-wider bg-amber-900/10 text-amber-900 px-2 py-0.5 rounded-md mt-1 border border-amber-900/15">
+                Mã giảm giá chi tiết
+              </span>
+              <div className="text-[9px] font-bold text-stone-500 mt-1.5 space-y-0.5 leading-tight">
+                <p>Giảm tối đa {coupon.maxDiscount ? formatPrice(coupon.maxDiscount) : 'cố định'}</p>
+                <p>Cho đơn từ {formatPrice(coupon.minOrderValue)}</p>
+              </div>
+            </div>
+          </div>
 
-                <div className="flex justify-between items-start gap-4">
-                  <span className="text-stone-400 shrink-0">Ngày hết hạn</span>
-                  <span className="text-stone-850 font-bold text-right flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5 text-stone-400" />
-                    {new Date(coupon.expiryDate).toLocaleDateString('vi-VN')} {new Date(coupon.expiryDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+          {/* Dashed Separator Line */}
+          <div className="relative w-full md:w-0 h-0 md:h-auto border-t-2 md:border-t-0 md:border-r-2 border-dashed border-amber-200 shrink-0 bg-gradient-to-b from-amber-50 to-amber-100 md:bg-none">
+            <div className="absolute -top-3.5 md:-top-3.5 -left-3.5 md:-left-3.5 h-7 w-7 bg-stone-50 rounded-full border border-stone-200 hidden md:block" />
+            <div className="absolute -bottom-3.5 md:-bottom-3.5 -left-3.5 md:-left-3.5 h-7 w-7 bg-stone-50 rounded-full border border-stone-200 hidden md:block" />
+          </div>
+
+          {/* Right Ticket Stub - Dark Brown Background */}
+          <div className="w-full md:w-48 bg-gradient-to-br from-amber-800 to-amber-900 text-white p-4.5 flex flex-col justify-center items-center text-center shrink-0 gap-2.5 relative">
+            {/* Right Edge Cutout */}
+            <div className="absolute top-1/2 -translate-y-1/2 -right-3.5 h-7 w-7 bg-stone-50 rounded-full border-l border-amber-950/20 z-10 hidden md:block" />
+
+            <div className="space-y-1 w-full">
+              <span className="text-[8px] font-extrabold text-amber-100/70 uppercase tracking-widest block">Mã Code</span>
+              <div className="w-full py-1 px-2.5 bg-amber-950/30 rounded-lg border border-white/10 font-mono text-xs font-black tracking-wider text-white truncate shadow-inner">
+                {coupon.code}
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-0.5 pt-0.5">
+              <div className="flex items-center gap-1 text-[8px] font-bold text-amber-100/80 uppercase tracking-wider">
+                <Clock className="h-2.5 w-2.5 text-amber-300" />
+                <span>Còn lại</span>
+              </div>
+              {isExpired ? (
+                <span className="text-xs font-black uppercase text-red-300 tracking-wider">Hết hạn</span>
+              ) : (
+                <div className="flex items-baseline text-white">
+                  <span className="text-xl font-black leading-none">{daysLeftText.match(/\d+/) ? daysLeftText.match(/\d+/)?.[0] : daysLeftText}</span>
+                  <span className="text-[9px] font-extrabold ml-0.5 uppercase tracking-wide">
+                    {daysLeftText.includes('ngày') ? 'Ngày' : daysLeftText.includes('giờ') ? 'Giờ' : 'Phút'}
                   </span>
                 </div>
-
-                {coupon.ownerId && (
-                  <div className="flex justify-between items-start gap-4">
-                    <span className="text-stone-400 shrink-0">Cửa hàng áp dụng (Owner ID)</span>
-                    <span className="text-stone-850 font-mono text-[10px] break-all text-right">{coupon.ownerId}</span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-
-            {/* Support info note */}
-            <div className="flex gap-2.5 p-4 rounded-2xl bg-stone-50 border border-stone-150 text-[10px] text-stone-500 leading-normal">
-              <BadgeInfo className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
-              <span>Voucher này có thể được áp dụng trực tiếp tại giỏ hàng hoặc chọn từ menu dropdown ở bước đặt hàng khi bạn đạt đủ giá trị đơn hàng tối thiểu. Mỗi mã có thể bị giới hạn số lượng sử dụng toàn hệ thống.</span>
-            </div>
-
           </div>
+        </div>
 
-          {/* Checkout action button */}
+        {/* Expiry Banner */}
+        <div className={`flex items-center gap-2 rounded-xl py-2 px-3 border text-[11px] font-bold ${
+          isExpired 
+            ? 'bg-red-50 text-red-700 border-red-150' 
+            : 'bg-amber-50/50 text-amber-900 border-amber-200/50'
+        }`}>
+          <Clock className="h-4 w-4 text-amber-700 shrink-0" />
+          <span>Thời gian hiệu lực: {isExpired ? 'Đã hết hạn' : daysLeftText}</span>
+        </div>
+
+        {/* Code display with copy */}
+        <div className="flex items-center justify-between gap-3 border border-stone-200/85 rounded-xl bg-white p-3 shadow-3xs">
+          <div>
+            <span className="text-[8px] font-bold text-stone-400 uppercase tracking-wider block">Mã code giảm giá</span>
+            <span className="text-base font-black text-amber-800 font-mono tracking-wide select-all text-amber-900">{coupon.code}</span>
+          </div>
           <button
-            onClick={() => router.push('/store')}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-amber-800 hover:bg-amber-900 transition-colors py-3.5 text-sm font-bold text-white shadow-md focus:outline-none cursor-pointer"
+            onClick={handleCopyCode}
+            className={`py-1.5 px-4 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1 shadow-sm hover:shadow cursor-pointer ${
+              copied 
+                ? 'bg-green-600 text-white' 
+                : 'bg-white hover:bg-stone-50 border border-stone-250 text-stone-700'
+            }`}
           >
-            <ShoppingBag className="h-4.5 w-4.5" />
-            Sử dụng ngay (Đến Cửa hàng)
+            {copied ? (
+              <>
+                <Check className="h-3 w-3" />
+                Đã sao chép
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3 text-stone-500" />
+                Sao chép mã
+              </>
+            )}
           </button>
         </div>
+
+        {/* Conditions Box */}
+        <div className="bg-white rounded-xl border border-stone-200 p-4.5 space-y-3">
+          <h4 className="text-[10px] font-extrabold text-stone-850 uppercase tracking-wider pb-2 border-b border-stone-100">
+            Điều kiện áp dụng
+          </h4>
+          
+          <div className="divide-y divide-stone-100/60 text-xs font-semibold text-stone-600">
+            <div className="flex justify-between items-center py-2">
+              <span className="flex items-center gap-1.5 text-stone-500">
+                <Tag className="h-3.5 w-3.5 text-amber-700" />
+                Giá trị đơn hàng
+              </span>
+              <span className="text-stone-800 font-bold">Đơn tối thiểu từ {formatPrice(coupon.minOrderValue)}</span>
+            </div>
+
+            {coupon.maxDiscount && (
+              <div className="flex justify-between items-center py-2">
+                <span className="flex items-center gap-1.5 text-stone-500">
+                  <Percent className="h-3.5 w-3.5 text-amber-700" />
+                  Mức giảm tối đa
+                </span>
+                <span className="text-stone-800 font-bold">{formatPrice(coupon.maxDiscount)}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center py-2">
+              <span className="flex items-center gap-1.5 text-stone-500">
+                <Calendar className="h-3.5 w-3.5 text-amber-700" />
+                Ngày hết hạn
+              </span>
+              <span className="text-stone-800 font-bold">{formatDateTime(coupon.expiryDate)}</span>
+            </div>
+
+            {coupon.ownerId && (
+              <div className="flex justify-between items-center py-2">
+                <span className="flex items-center gap-1.5 text-stone-500">
+                  <Store className="h-3.5 w-3.5 text-amber-700" />
+                  Cửa hàng áp dụng (Owner ID)
+                </span>
+                <span className="text-stone-800 font-mono text-[9px] select-all">{coupon.ownerId}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Info Alert Box */}
+        <div className="flex gap-2 p-3 rounded-xl bg-stone-50 border border-stone-150 text-[9px] text-stone-500 leading-normal">
+          <BadgeInfo className="h-3.5 w-3.5 text-amber-700 shrink-0 mt-0.5" />
+          <span>
+            Voucher này có thể được áp dụng trực tiếp tại giỏ hàng hoặc chọn từ menu dropdown ở bước đặt hàng khi bạn đạt đủ giá trị đơn hàng tối thiểu. Mỗi mã có thể bị giới hạn số lượng sử dụng toàn hệ thống.
+          </span>
+        </div>
+
+        {/* Action Button */}
+        <button
+          onClick={() => router.push('/products')}
+          className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-amber-800 hover:bg-amber-900 transition-colors py-2.5 text-xs font-bold text-white shadow-md focus:outline-none cursor-pointer"
+        >
+          <ShoppingBag className="h-4.5 w-4.5" />
+          Sử dụng ngay (Đến Cửa hàng)
+        </button>
+
       </div>
     </div>
   )

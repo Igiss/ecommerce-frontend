@@ -16,18 +16,18 @@ const CATEGORIES = ['Tất cả', 'Thiết bị nhà bếp', 'Đồ dùng gia đ
 
 const SLIDES = [
   {
-    badge: 'Thiết kế 3D độc bản',
-    title: 'Cá nhân hóa chiếc cốc của riêng bạn',
-    description: 'Tạo nên một sản phẩm thật sự riêng biệt với phong cách 3D, màu sắc và logo phù hợp với phong cách của bạn.',
+    badge: 'Đồ gia dụng thông minh',
+    title: 'Tối ưu hóa không gian sống của bạn',
+    description: 'Trang bị cho ngôi nhà của bạn những thiết bị gia dụng hiện đại, thông minh và tiện nghi nhất.',
     image: '/images/ceramic_cup_hero.png',
     bgImage: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1600&auto=format&fit=crop&q=80',
-    tagline1: '✔ An toàn cho đồ uống nóng',
-    tagline2: '✔ In ấn theo yêu cầu'
+    tagline1: '✔ An toàn cho sức khỏe',
+    tagline2: '✔ Thiết kế hiện đại'
   },
   {
     badge: 'Bán chạy nhất',
-    title: 'Giữ trọn hương vị, đậm đà phong cách',
-    description: 'Dòng ly giữ nhiệt inox cao cấp đồng hành cùng bạn trên mọi nẻo đường, giữ nóng đến 12h và giữ lạnh lên đến 24h.',
+    title: 'Tiện nghi tối đa, nâng tầm gia đình',
+    description: 'Dòng bình giữ nhiệt inox cao cấp tiện dụng cho cả gia đình, giữ nóng đến 12h và giữ lạnh lên đến 24h.',
     image: '/images/travel_tumbler_hero.png',
     bgImage: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1600&auto=format&fit=crop&q=80',
     tagline1: '✔ Chất liệu Inox 316 an toàn',
@@ -35,12 +35,12 @@ const SLIDES = [
   },
   {
     badge: 'Sưu tập mới',
-    title: 'Trong suốt tinh khôi, nâng tầm trải nghiệm',
-    description: 'Thủy tinh borosilicate chịu nhiệt cao cấp, siêu nhẹ và trong suốt, giúp bạn ngắm nhìn trọn vẹn sắc màu của trà và cà phê.',
+    title: 'Thiết bị nhà bếp tinh tế và sang trọng',
+    description: 'Dụng cụ thủy tinh chịu nhiệt cao cấp cho căn bếp, siêu nhẹ và trong suốt, an toàn tuyệt đối cho gia đình.',
     image: '/images/glass_mug_hero.png',
     bgImage: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1600&auto=format&fit=crop&q=80',
-    tagline1: '✔ Thủy tinh Borosilicate cao cấp',
-    tagline2: '✔ Thiết kế 2 lớp chống nóng'
+    tagline1: '✔ Thủy tinh chịu nhiệt cao cấp',
+    tagline2: '✔ Đạt tiêu chuẩn xuất khẩu'
   }
 ]
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getMyNotifications, markNotificationRead, markAllNotificationsRead, type UserNotification } from '@/lib/api/notification.service'
+import { getMyOrders } from '@/lib/api/orders.service'
 import { Bell, Calendar, AlertCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 
@@ -26,9 +27,31 @@ export default function ProfileNotificationsPage() {
 
   const fetchNotificationsList = () => {
     setNotisLoading(true)
-    getMyNotifications()
-      .then((data) => {
-        setNotifications(Array.isArray(data) ? data : [])
+    Promise.all([
+      getMyNotifications(),
+      getMyOrders({ limit: 50 }).catch(() => [])
+    ])
+      .then(([notiData, ordersRes]: [any, any]) => {
+        const notis = Array.isArray(notiData) ? notiData : []
+        const orders = Array.isArray(ordersRes?.data) ? ordersRes.data : (Array.isArray(ordersRes) ? ordersRes : [])
+        
+        const cancelledOrderIds = orders
+          .filter((o: any) => o.orderStatus === 'cancelled' || (o.paymentMethod === 'VNPAY' && o.paymentStatus === 'failed'))
+          .map((o: any) => String(o._id || o.id))
+
+        const filteredNotis = notis.filter((noti: any) => {
+          const orderId = noti.metadata?.orderId || noti.metadata?.orderIdParam;
+          if (orderId && cancelledOrderIds.includes(String(orderId))) return false;
+          if (noti.title === 'Đặt hàng thành công!') {
+            const match = noti.message?.match(/#[a-f0-9]{24}/);
+            if (match) {
+              const matchedId = match[0].replace('#', '');
+              if (cancelledOrderIds.includes(matchedId)) return false;
+            }
+          }
+          return true;
+        })
+        setNotifications(filteredNotis)
       })
       .catch((err) => {
         setNotisError(err.message || 'Không thể tải danh sách thông báo.')

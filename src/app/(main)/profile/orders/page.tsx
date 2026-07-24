@@ -53,7 +53,7 @@ export default function ProfileOrdersPage() {
           status: mapBackendStatusToFrontend(order.orderStatus || order.status),
           totalPrice: order.totalAmount || order.totalPrice || 0,
           orderItems: order.items || order.orderItems || [],
-          isPaid: order.paymentStatus === 'paid' || order.isPaid || false
+          isPaid: order.paymentStatus === 'paid' || order.isPaid || order.orderStatus === 'completed' || false
         }))
         setOrders(normalized)
       })

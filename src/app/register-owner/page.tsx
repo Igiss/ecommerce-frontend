@@ -64,7 +64,7 @@ export default function RegisterOwnerPage() {
           </p>
           <div className="pt-2">
             <p className="text-xs text-amber-800 bg-amber-50 rounded-lg p-3 border border-amber-100 font-medium">
-              Chúng tôi sẽ kích hoạt tài khoản của bạn trong vòng 24h làm việc. Xin cảm ơn bạn đã tham gia cùng CupShop!
+              Chúng tôi sẽ kích hoạt tài khoản của bạn trong vòng 24h làm việc. Xin cảm ơn bạn đã tham gia cùng Gia Dụng 24h!
             </p>
           </div>
           <div className="pt-4">
@@ -248,7 +248,7 @@ export default function RegisterOwnerPage() {
               <Link href="/about" className="font-semibold text-amber-700 hover:underline">
                 Chính sách vận hành Kênh người bán
               </Link>{' '}
-              của CupShop.
+              của Gia Dụng 24h.
             </p>
           </>
         )}

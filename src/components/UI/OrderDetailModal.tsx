@@ -100,7 +100,7 @@ export function OrderDetailModal({ orderId, isOpen, onClose, onOrderUpdated }: O
       ...data,
       id: data.id || data._id,
       status: mapBackendStatusToFrontend(data.orderStatus || data.status),
-      isPaid: data.paymentStatus === 'paid' || data.isPaid || false,
+      isPaid: data.paymentStatus === 'paid' || data.isPaid || data.orderStatus === 'completed' || false,
       orderItems,
       totalPrice: Number(data.totalAmount ?? data.totalPrice ?? 0),
       itemsPrice: Number(

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { useCartStore } from '@/store/cart.store'
-import { createOrder, createVNPayUrl, createSepayQr, createSepayCheckout } from '@/lib/api/orders.service'
+import { createOrder, createVNPayUrl, getMyOrders, createSepayQr, createSepayCheckout } from '@/lib/api/orders.service'
 import { validateCoupon, getActiveCoupons } from '@/lib/api/coupons.service'
 import { getAddresses } from '@/lib/api/address.service'
 import { AlertCircle, Ticket, CreditCard, MapPin, ShieldCheck, QrCode } from 'lucide-react'
@@ -57,6 +57,7 @@ export default function CheckoutPage() {
   const [discountAmount, setDiscountAmount] = useState(0)
   const [activeCoupons, setActiveCoupons] = useState<any[]>([])
   const [selectedCouponCode, setSelectedCouponCode] = useState('')
+  const [usedCouponCodes, setUsedCouponCodes] = useState<string[]>([])
 
   // Redirect if not logged in or cart is empty
   useEffect(() => {
@@ -97,6 +98,17 @@ export default function CheckoutPage() {
           setActiveCoupons(Array.isArray(data) ? data : [])
         })
         .catch((err) => console.error('Failed to load active coupons:', err))
+
+      getMyOrders({ limit: 100 })
+        .then((res: any) => {
+          const orders = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : [])
+          const used = orders
+            .filter((o: any) => o.orderStatus !== 'cancelled')
+            .map((o: any) => o.couponCode)
+            .filter(Boolean)
+          setUsedCouponCodes(used)
+        })
+        .catch((err) => console.error('Failed to load user orders:', err))
     }
   }, [user])
 
@@ -132,7 +144,7 @@ export default function CheckoutPage() {
           </svg>
         </div>
         <h2 className="text-2xl font-black text-stone-900 tracking-tight">Đặt hàng thành công!</h2>
-        <p className="text-sm text-stone-500 mt-2">Cảm ơn bạn đã mua sắm tại CupShop. Đơn hàng của bạn đã được tiếp nhận và đang được xử lý.</p>
+        <p className="text-sm text-stone-500 mt-2">Cảm ơn bạn đã mua sắm tại Gia Dụng 24h. Đơn hàng của bạn đã được tiếp nhận và đang được xử lý.</p>
         {newOrderId && (
           <div className="mt-4 rounded-xl bg-stone-50 border border-stone-150 p-3.5 text-xs text-stone-600">
             Mã đơn hàng: <strong className="text-stone-900 select-all">{newOrderId}</strong>
@@ -192,7 +204,13 @@ export default function CheckoutPage() {
   const shippingPrice = itemsPrice > 500000 ? 0 : 30000
   const totalPrice = itemsPrice + shippingPrice - discountAmount
   const hasProfileInfo = savedAddresses.length > 0
-  const eligibleCoupons = activeCoupons.filter((c) => itemsPrice >= c.minOrderValue)
+  const eligibleCoupons = activeCoupons.filter((c) => {
+    if (itemsPrice < c.minOrderValue) return false;
+    const isExpired = c.expiryDate && new Date(c.expiryDate) < new Date();
+    if (isExpired) return false;
+    if (c.isActive === false) return false;
+    return true;
+  })
 
   // Handle coupon validation by code string
   const applyCouponByCode = async (codeToApply: string) => {
@@ -214,7 +232,23 @@ export default function CheckoutPage() {
       setSelectedCouponCode(rawCode)
       setDiscountAmount(result.actualDiscount || result.discountAmount || 0)
     } catch (err: any) {
-      setCouponError(err?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.')
+      let errMsg = err?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.'
+      if (errMsg.includes('Coupon per-user usage limit reached')) {
+        errMsg = 'Bạn đã đạt giới hạn sử dụng mã này.'
+      } else if (errMsg.includes('Coupon has expired')) {
+        errMsg = 'Mã giảm giá đã hết hạn sử dụng.'
+      } else if (errMsg.includes('Coupon is inactive')) {
+        errMsg = 'Mã giảm giá đã ngừng hoạt động.'
+      } else if (errMsg.includes('Coupon is not active yet')) {
+        errMsg = 'Mã giảm giá chưa đến thời gian áp dụng.'
+      } else if (errMsg.includes('Coupon usage limit reached')) {
+        errMsg = 'Mã giảm giá đã hết lượt sử dụng.'
+      } else if (errMsg.includes('Minimum order value is')) {
+        errMsg = errMsg.replace('Minimum order value is', 'Giá trị đơn hàng tối thiểu để áp dụng mã là')
+      } else if (errMsg.includes('Coupon not found')) {
+        errMsg = 'Không tìm thấy mã giảm giá.'
+      }
+      setCouponError(errMsg)
     } finally {
       setCouponLoading(false)
     }
@@ -286,7 +320,23 @@ export default function CheckoutPage() {
         setIsSuccess(true)
       }
     } catch (err: any) {
-      setError(err.message || 'Có lỗi xảy ra trong quá trình đặt hàng.')
+      let errMsg = err.message || 'Có lỗi xảy ra trong quá trình đặt hàng.'
+      if (errMsg.includes('Coupon per-user usage limit reached')) {
+        errMsg = 'Bạn đã đạt giới hạn sử dụng mã này.'
+      } else if (errMsg.includes('Coupon has expired')) {
+        errMsg = 'Mã giảm giá đã hết hạn sử dụng.'
+      } else if (errMsg.includes('Coupon is inactive')) {
+        errMsg = 'Mã giảm giá đã ngừng hoạt động.'
+      } else if (errMsg.includes('Coupon is not active yet')) {
+        errMsg = 'Mã giảm giá chưa đến thời gian áp dụng.'
+      } else if (errMsg.includes('Coupon usage limit reached')) {
+        errMsg = 'Mã giảm giá đã hết lượt sử dụng.'
+      } else if (errMsg.includes('Minimum order value is')) {
+        errMsg = errMsg.replace('Minimum order value is', 'Giá trị đơn hàng tối thiểu để áp dụng mã là')
+      } else if (errMsg.includes('Coupon not found')) {
+        errMsg = 'Không tìm thấy mã giảm giá.'
+      }
+      setError(errMsg)
     } finally {
       setLoading(false)
     }
@@ -553,12 +603,17 @@ export default function CheckoutPage() {
                   >
                     <option value="">-- Chọn voucher của bạn --</option>
                     {eligibleCoupons.map((c) => {
+                      const isUsed = usedCouponCodes.includes(c.code)
                       const discText = c.discountType === 'percentage' 
                         ? `${c.discountAmount}%` 
                         : `${(c.discountAmount / 1000)}k`
                       return (
-                        <option key={c._id || c.id || c.code} value={c.code}>
-                          {c.code} (Giảm {discText} - Đơn từ {c.minOrderValue.toLocaleString('vi-VN')}đ)
+                        <option 
+                          key={c._id || c.id || c.code} 
+                          value={c.code} 
+                          disabled={isUsed}
+                        >
+                          {c.code} (Giảm {discText} - Đơn từ {c.minOrderValue.toLocaleString('vi-VN')}đ){isUsed ? ' - Đã sử dụng' : ''}
                         </option>
                       )
                     })}
@@ -662,7 +717,7 @@ export default function CheckoutPage() {
 
             <div className="mt-6 flex items-center gap-2 rounded-lg bg-stone-50 border border-stone-100 p-3 text-[10px] text-stone-500 leading-normal">
               <ShieldCheck className="h-4 w-4 text-amber-700 shrink-0" />
-              <span>Giao dịch của bạn được bảo mật. Bằng cách nhấn đặt hàng, bạn đồng ý với các điều khoản dịch vụ của CupShop.</span>
+              <span>Giao dịch của bạn được bảo mật. Bằng cách nhấn đặt hàng, bạn đồng ý với các điều khoản dịch vụ của Gia Dụng 24h.</span>
             </div>
           </div>
         </div>
