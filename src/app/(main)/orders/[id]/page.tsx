@@ -49,6 +49,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
       id: data.id || data._id,
       status: mapBackendStatusToFrontend(data.orderStatus || data.status),
       isPaid: data.paymentStatus === 'paid' || data.isPaid || false,
+      paymentMethod: String(data.paymentMethod || 'COD').toUpperCase(),
       orderItems,
       totalPrice: Number(data.totalAmount ?? data.totalPrice ?? 0),
       itemsPrice: Number(
@@ -143,7 +144,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
     switch (status) {
       case 'delivered': return 'Đã giao hàng thành công'
       case 'shipped': return 'Đang trên đường vận chuyển'
-      case 'processing': return 'Đang được in ấn 3D / Đóng gói'
+      case 'processing': return 'Đặt đơn thành công'
       case 'cancelled': return 'Đã hủy bỏ'
       default: return 'Chờ hệ thống xác nhận'
     }
@@ -230,7 +231,11 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             <div>
               <span className="text-xs text-stone-400 font-semibold uppercase">Hình thức</span>
               <p className="font-bold text-stone-900 mt-0.5">
-                {order.paymentMethod === 'VNPAY' ? 'Thanh toán trực tuyến VNPay' : 'Thanh toán khi nhận hàng (COD)'}
+                {order.paymentMethod === 'VNPAY'
+                  ? 'Thanh toán trực tuyến VNPay'
+                  : order.paymentMethod === 'SEPAY'
+                    ? 'Thanh toán qua SePay'
+                    : 'Thanh toán khi nhận hàng (COD)'}
               </p>
             </div>
             <div>
