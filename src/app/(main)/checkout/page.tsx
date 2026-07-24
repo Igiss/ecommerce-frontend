@@ -259,42 +259,18 @@ export default function CheckoutPage() {
       const orderId = createdOrder._id || createdOrder.id
 
       if (paymentMethod === 'SePay') {
-        // Try SePay Hosted Gateway Form Submit (exact VNPay style)
-        try {
-          const sepayCheckoutRes = await createSepayCheckout(orderId)
-          if (sepayCheckoutRes && sepayCheckoutRes.checkoutURL && sepayCheckoutRes.checkoutFormfields) {
-            clearCart()
-            const form = document.createElement('form')
-            form.method = 'POST'
-            form.action = sepayCheckoutRes.checkoutURL
-
-            Object.keys(sepayCheckoutRes.checkoutFormfields).forEach((key) => {
-              const input = document.createElement('input')
-              input.type = 'hidden'
-              input.name = key
-              input.value = sepayCheckoutRes.checkoutFormfields[key]
-              form.appendChild(input)
-            })
-
-            document.body.appendChild(form)
-            form.submit()
-            return
-          }
-        } catch (sepayErr) {
-          console.error('SePay Gateway error, fallback to VietQR modal:', sepayErr)
-        }
-
-        // Fallback to VietQR Modal with setIsSuccess(true)
         const sepayRes = await createSepayQr(orderId)
-        if (sepayRes && sepayRes.qrUrl) {
+        if (sepayRes) {
           setNewOrderId(orderId)
           setSepayQrData(sepayRes)
           setIsSuccess(true)
           setShowSepayModal(true)
           clearCart()
         } else {
-          setError('Không thể khởi tạo thanh toán SePay. Vui lòng thử lại.')
+          setError('Không thể khởi tạo mã QR SePay. Vui lòng thử lại sau.')
         }
+        setLoading(false)
+        return
       } else if (paymentMethod === 'VNPay') {
         // Retrieve VNPay sandbox redirect link
         const vnpayRes = await createVNPayUrl(orderId)
