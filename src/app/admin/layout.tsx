@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { logoutUser } from '@/lib/api/auth.service'
 import Link from 'next/link'
-import { LayoutDashboard, ShoppingCart, Calendar, Ticket, ArrowLeft, Loader2, LogOut, Shield, Users, FolderOpen, Bell, Truck, Image as ImageIcon } from 'lucide-react'
+import { LayoutDashboard, ShoppingCart, Calendar, Ticket, ArrowLeft, Loader2, LogOut, Shield, Users, FolderOpen, Bell, Truck, Image as ImageIcon, Building2 } from 'lucide-react'
 
 interface AdminLayoutProps {
   children: ReactNode

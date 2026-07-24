@@ -20,8 +20,9 @@ export function ProductCard({ product }: ProductCardProps) {
   
   const isLiked = hasItem(String(product.id))
 
-  // Extract first image or use a beautiful Unsplash fallback photo
-  const imageUrl = (product as any).images?.[0] || 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=60'
+  const images = (product as any).images || []
+  const imageUrl = images[0] || 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=60'
+  const secondImageUrl = images.length > 1 ? images[1] : null
 
   const handleCardClick = () => {
     trackProductView(product)
@@ -53,9 +54,19 @@ export function ProductCard({ product }: ProductCardProps) {
         <img
           src={imageUrl}
           alt={product.name}
-          className="h-full w-full object-contain object-center transition-transform duration-500 group-hover:scale-105"
+          className={`h-full w-full object-contain object-center transition-all duration-500 ${
+            secondImageUrl ? 'group-hover:opacity-0' : 'group-hover:scale-105'
+          }`}
           loading="lazy"
         />
+        {secondImageUrl && (
+          <img
+            src={secondImageUrl}
+            alt={`${product.name} - 2`}
+            className="absolute inset-0 h-full w-full object-contain object-center opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:scale-105"
+            loading="lazy"
+          />
+        )}
         {product.modelUrl && (
           <span className="absolute top-2.5 right-2.5 flex items-center gap-1 rounded-full bg-amber-500/90 backdrop-blur-xs px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
             <Sparkles className="h-3 w-3" />

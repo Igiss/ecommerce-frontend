@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { useCartStore } from '@/store/cart.store'
-import { createOrder, createVNPayUrl } from '@/lib/api/orders.service'
+import { createOrder, createVNPayUrl, createSepayQr, createSepayCheckout } from '@/lib/api/orders.service'
 import { validateCoupon, getActiveCoupons } from '@/lib/api/coupons.service'
 import { getAddresses } from '@/lib/api/address.service'
-import { AlertCircle, Ticket, CreditCard, MapPin, ShieldCheck } from 'lucide-react'
+import { AlertCircle, Ticket, CreditCard, MapPin, ShieldCheck, QrCode } from 'lucide-react'
+import { SepayModal } from '@/components/checkout/SepayModal'
 
 interface Province {
   code: number
@@ -36,9 +37,13 @@ export default function CheckoutPage() {
   const [ward, setWard] = useState('')
   const [province, setProvince] = useState('')
   const [postalCode, setPostalCode] = useState('70000')
-  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'VNPay'>('COD')
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'VNPay' | 'SePay'>('SePay')
   const [isSuccess, setIsSuccess] = useState(false)
   const [newOrderId, setNewOrderId] = useState('')
+
+  // SePay Modal State
+  const [showSepayModal, setShowSepayModal] = useState(false)
+  const [sepayQrData, setSepayQrData] = useState<any>(null)
 
   // Saved addresses
   const [savedAddresses, setSavedAddresses] = useState<any[]>([])
@@ -147,6 +152,15 @@ export default function CheckoutPage() {
             Xem lịch sử mua hàng
           </button>
         </div>
+
+        {/* SePay VietQR Modal */}
+        {showSepayModal && sepayQrData && (
+          <SepayModal
+            orderId={sepayQrData.orderId}
+            qrData={sepayQrData}
+            onClose={() => setShowSepayModal(false)}
+          />
+        )}
       </div>
     )
   }
@@ -159,7 +173,7 @@ export default function CheckoutPage() {
     )
   }
 
-  if (items.length === 0) {
+  if (items.length === 0 && !isSuccess && !newOrderId) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
         <h2 className="text-xl font-bold text-stone-900">Giỏ hàng của bạn đang trống</h2>
@@ -237,14 +251,51 @@ export default function CheckoutPage() {
           ward,
           province 
         },
-        paymentMethod: paymentMethod === 'VNPay' ? 'VNPAY' : 'COD',
+        paymentMethod: paymentMethod === 'VNPay' ? 'VNPAY' : paymentMethod === 'SePay' ? 'SEPAY' : 'COD',
         couponCode: appliedCoupon?.code
       }
 
       const createdOrder = await createOrder(orderData)
       const orderId = createdOrder._id || createdOrder.id
 
-      if (paymentMethod === 'VNPay') {
+      if (paymentMethod === 'SePay') {
+        // Try SePay Hosted Gateway Form Submit (exact VNPay style)
+        try {
+          const sepayCheckoutRes = await createSepayCheckout(orderId)
+          if (sepayCheckoutRes && sepayCheckoutRes.checkoutURL && sepayCheckoutRes.checkoutFormfields) {
+            clearCart()
+            const form = document.createElement('form')
+            form.method = 'POST'
+            form.action = sepayCheckoutRes.checkoutURL
+
+            Object.keys(sepayCheckoutRes.checkoutFormfields).forEach((key) => {
+              const input = document.createElement('input')
+              input.type = 'hidden'
+              input.name = key
+              input.value = sepayCheckoutRes.checkoutFormfields[key]
+              form.appendChild(input)
+            })
+
+            document.body.appendChild(form)
+            form.submit()
+            return
+          }
+        } catch (sepayErr) {
+          console.error('SePay Gateway error, fallback to VietQR modal:', sepayErr)
+        }
+
+        // Fallback to VietQR Modal with setIsSuccess(true)
+        const sepayRes = await createSepayQr(orderId)
+        if (sepayRes && sepayRes.qrUrl) {
+          setNewOrderId(orderId)
+          setSepayQrData(sepayRes)
+          setIsSuccess(true)
+          setShowSepayModal(true)
+          clearCart()
+        } else {
+          setError('Không thể khởi tạo thanh toán SePay. Vui lòng thử lại.')
+        }
+      } else if (paymentMethod === 'VNPay') {
         // Retrieve VNPay sandbox redirect link
         const vnpayRes = await createVNPayUrl(orderId)
         if (vnpayRes && vnpayRes.paymentUrl) {
@@ -408,6 +459,34 @@ export default function CheckoutPage() {
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label
+                className={`flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-all ${
+                  paymentMethod === 'SePay'
+                    ? 'border-amber-600 bg-amber-50/35 ring-1 ring-amber-600'
+                    : 'border-stone-200 bg-white hover:bg-stone-50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="SePay"
+                    checked={paymentMethod === 'SePay'}
+                    onChange={() => setPaymentMethod('SePay')}
+                    className="h-4 w-4 text-amber-700 focus:ring-amber-600 border-stone-300"
+                  />
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-bold text-stone-900">VietQR / SePay Tự Động</p>
+                      <span className="bg-emerald-100 text-emerald-800 text-[9px] font-extrabold px-1.5 py-0.2 rounded border border-emerald-300">
+                        Gợi ý ⚡
+                      </span>
+                    </div>
+                    <p className="text-xs text-stone-500 mt-0.5">Quét QR Ngân hàng, xác nhận trong 3s</p>
+                  </div>
+                </div>
+              </label>
+
               <label
                 className={`flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-all ${
                   paymentMethod === 'COD'
@@ -612,6 +691,15 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      {/* SePay VietQR Modal */}
+      {showSepayModal && sepayQrData && (
+        <SepayModal
+          orderId={sepayQrData.orderId}
+          qrData={sepayQrData}
+          onClose={() => setShowSepayModal(false)}
+        />
+      )}
     </div>
   )
 }

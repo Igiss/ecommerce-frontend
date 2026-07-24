@@ -23,6 +23,30 @@ async function getNormalizedList<T>(path: string, init?: RequestInit) {
   return normalizeApiListResponse<T>(data)
 }
 
+// SePay Bank Settings API
+export function getSepaySettings() {
+  return apiClient<{
+    bankName: string
+    accountNumber: string
+    accountHolder: string
+    apiKey?: string
+  }>('/settings/sepay', {
+    method: 'GET'
+  })
+}
+
+export function updateSepaySettings(data: {
+  bankName: string
+  accountNumber: string
+  accountHolder: string
+  apiKey?: string
+}) {
+  return apiClient<any>('/settings/sepay', {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  })
+}
+
 // Dashboard stats
 export async function getDashboardStats() {
   try {
