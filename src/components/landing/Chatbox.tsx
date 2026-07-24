@@ -15,6 +15,7 @@ import {
   ExternalLink
 } from 'lucide-react'
 import { sendChatMessage, type ChatMessage } from '@/lib/api/chat.service'
+import { ApiError } from '@/lib/api/client'
 import { getProducts } from '@/lib/api/products.service'
 import { useCartStore } from '@/store/cart.store'
 import type { Product } from '@/types/product'
@@ -29,6 +30,16 @@ const QUICK_PROMPTS = [
 const WELCOME_MESSAGE: ChatMessage = {
   role: 'assistant',
   content: 'Xin chào! Mình là Trợ Lý AI của Gia Dụng 24h 🍳. Bạn cần tư vấn thiết bị nhà bếp, đồ gia dụng thông minh hay thông tin khuyến mãi hôm nay? Hãy hỏi mình nhé! 😊'
+}
+
+const CHAT_BUSY_MESSAGE = 'Trợ lý AI đang quá tải. Bạn vui lòng thử lại sau ít phút.'
+const CHAT_ERROR_MESSAGE = 'Rất tiếc, trợ lý AI tạm thời gặp sự cố. Bạn vui lòng thử lại sau.'
+
+function getChatErrorMessage(error: unknown) {
+  if (error instanceof ApiError && [429, 503].includes(error.status)) {
+    return CHAT_BUSY_MESSAGE
+  }
+  return CHAT_ERROR_MESSAGE
 }
 
 export function Chatbox() {
@@ -72,10 +83,11 @@ export function Chatbox() {
     }
   }, [messages, loading])
 
-  const handleSend = async (textToSend: string) => {
-    if (!textToSend.trim() || loading) return
+  const handleSend = async (textToSend: string | null | undefined) => {
+    const normalizedText = String(textToSend || '').trim()
+    if (!normalizedText || loading) return
 
-    const userMsg = textToSend.trim()
+    const userMsg = normalizedText
     setInputText('')
     setLoading(true)
 
@@ -92,21 +104,26 @@ export function Chatbox() {
 
       const response = await sendChatMessage({ messages: apiHistory })
       
+      const safeReply =
+        typeof response?.reply === 'string' && response.reply.trim()
+          ? response.reply
+          : 'Mình chưa hiểu ý bạn lắm. Bạn có thể hỏi lại không?'
+
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: response.reply || 'Mình chưa hiểu ý bạn lắm. Bạn có thể hỏi lại không?',
-          products: response.products
+          content: safeReply,
+          products: Array.isArray(response?.products) ? response.products : []
         }
       ])
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Chat error:', error)
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: error.message || 'Rất tiếc, hệ thống đang bận. Bạn vui lòng thử lại sau.'
+          content: getChatErrorMessage(error)
         }
       ])
     } finally {
@@ -144,7 +161,7 @@ export function Chatbox() {
 
   // Format assistant message lines
   const formatContent = (content: string) => {
-    const lines = content.split('\n')
+    const lines = String(content || '').split('\n')
     return lines.map((line, idx) => {
       let formattedLine = line
       // Replace bold **text**
@@ -374,7 +391,7 @@ export function Chatbox() {
         >
           <input
             type="text"
-            value={inputText}
+            value={inputText || ''}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="Hỏi về sản phẩm, mã giảm giá, bảo hành..."
             className="flex-1 rounded-xl border border-stone-300 bg-stone-50 px-3.5 py-2 text-xs sm:text-sm focus:border-amber-700 focus:bg-white focus:outline-none transition-all text-stone-850"
@@ -382,7 +399,7 @@ export function Chatbox() {
           />
           <button
             type="submit"
-            disabled={!inputText.trim() || loading}
+            disabled={!String(inputText || '').trim() || loading}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-800 text-white transition-colors hover:bg-amber-900 disabled:bg-stone-200 disabled:text-stone-400 focus:outline-none cursor-pointer shrink-0"
           >
             {loading ? (
