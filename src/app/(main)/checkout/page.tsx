@@ -132,7 +132,7 @@ export default function CheckoutPage() {
           </svg>
         </div>
         <h2 className="text-2xl font-black text-stone-900 tracking-tight">Đặt hàng thành công!</h2>
-        <p className="text-sm text-stone-500 mt-2">Cảm ơn bạn đã mua sắm tại CupShop. Đơn hàng của bạn đã được tiếp nhận và đang được xử lý.</p>
+        <p className="text-sm text-stone-500 mt-2">Cảm ơn bạn đã mua sắm tại Gia Dụng 24h. Đơn hàng của bạn đã được tiếp nhận và đang được xử lý.</p>
         {newOrderId && (
           <div className="mt-4 rounded-xl bg-stone-50 border border-stone-150 p-3.5 text-xs text-stone-600">
             Mã đơn hàng: <strong className="text-stone-900 select-all">{newOrderId}</strong>
@@ -192,7 +192,44 @@ export default function CheckoutPage() {
   const shippingPrice = itemsPrice > 500000 ? 0 : 30000
   const totalPrice = itemsPrice + shippingPrice - discountAmount
   const hasProfileInfo = savedAddresses.length > 0
-  const eligibleCoupons = activeCoupons.filter((c) => itemsPrice >= c.minOrderValue)
+  const cartPayloadItems = items.map((item) => {
+    const ownerIdObj = (item.product as any)?.ownerId
+    const ownerIdStr =
+      typeof ownerIdObj === 'object' && ownerIdObj !== null
+        ? ownerIdObj._id || ownerIdObj.id || ownerIdObj
+        : ownerIdObj
+
+    const categoryIdObj = (item.product as any)?.categoryId
+    const categoryIdStr =
+      typeof categoryIdObj === 'object' && categoryIdObj !== null
+        ? categoryIdObj._id || categoryIdObj.id || categoryIdObj
+        : categoryIdObj
+
+    return {
+      productId: String(item.product.id || (item.product as any)._id || ''),
+      categoryId: categoryIdStr ? String(categoryIdStr) : undefined,
+      ownerId: ownerIdStr ? String(ownerIdStr) : undefined,
+      total: item.product.price * item.qty,
+    }
+  })
+
+  const eligibleCoupons = activeCoupons.filter((c) => {
+    if (new Date(c.expiryDate) < new Date()) return false
+
+    let eligibleSubtotal = itemsPrice
+    if (c.ownerId) {
+      const couponOwnerIdStr =
+        typeof c.ownerId === 'object' && c.ownerId !== null
+          ? String(c.ownerId._id || c.ownerId.id || c.ownerId)
+          : String(c.ownerId)
+
+      const shopItems = cartPayloadItems.filter((i) => i.ownerId === couponOwnerIdStr)
+      if (shopItems.length === 0) return false
+      eligibleSubtotal = shopItems.reduce((sum, i) => sum + i.total, 0)
+    }
+
+    return eligibleSubtotal >= c.minOrderValue
+  })
 
   // Handle coupon validation by code string
   const applyCouponByCode = async (codeToApply: string) => {
@@ -205,7 +242,7 @@ export default function CheckoutPage() {
 
     setCouponLoading(true)
     try {
-      const result = await validateCoupon(rawCode, itemsPrice)
+      const result = await validateCoupon(rawCode, itemsPrice, cartPayloadItems)
       setAppliedCoupon({
         ...(result.coupon || result),
         code: rawCode
@@ -659,7 +696,7 @@ export default function CheckoutPage() {
 
             <div className="mt-6 flex items-center gap-2 rounded-lg bg-stone-50 border border-stone-100 p-3 text-[10px] text-stone-500 leading-normal">
               <ShieldCheck className="h-4 w-4 text-amber-700 shrink-0" />
-              <span>Giao dịch của bạn được bảo mật. Bằng cách nhấn đặt hàng, bạn đồng ý với các điều khoản dịch vụ của CupShop.</span>
+              <span>Giao dịch của bạn được bảo mật. Bằng cách nhấn đặt hàng, bạn đồng ý với các điều khoản dịch vụ của Gia Dụng 24h.</span>
             </div>
           </div>
         </div>

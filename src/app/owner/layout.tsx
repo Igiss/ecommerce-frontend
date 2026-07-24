@@ -73,7 +73,7 @@ export default function OwnerLayout({ children }: OwnerLayoutProps) {
         <div className="h-16 flex items-center px-6 border-b border-amber-900">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-lg font-extrabold tracking-tight text-white flex items-center gap-1">
-              Cup<span className="text-amber-400">Shop</span> 
+              Gia Dụng <span className="text-amber-400">24h</span>
               <span className="text-[10px] bg-amber-500/25 text-amber-300 px-1.5 py-0.5 rounded-full font-bold uppercase">Seller</span>
             </span>
           </Link>

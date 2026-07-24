@@ -1,6 +1,58 @@
 import { apiClient, ApiError } from './client'
 import { normalizeApiListResponse, toQueryString } from './utils'
 
+export type AdminAnalyticsPeriod = '7days' | '30days' | '12months'
+
+export interface AdminRevenuePoint {
+  _id: {
+    year: number
+    month: number
+    day?: number
+  }
+  revenue: number
+  orders: number
+}
+
+export interface AdminTopProduct {
+  _id: string
+  name: string
+  image?: string
+  totalSold: number
+  revenue: number
+}
+
+export interface AdminStatusBreakdown {
+  _id: 'pending' | 'confirmed' | 'assigned' | 'shipping' | 'completed' | 'cancelled'
+  orders: number
+}
+
+export interface AdminAnalytics {
+  period: AdminAnalyticsPeriod
+  periodStart: string
+  periodEnd: string
+  dashboard: {
+    totalUsers: number
+    totalProducts: number
+    lowStockProducts: number
+    totalCustomers: number
+    totalOrders: number
+    totalRevenue: number
+    pendingOrders: number
+    completedOrders: number
+  }
+  revenueChart: AdminRevenuePoint[]
+  topProducts: AdminTopProduct[]
+  statusBreakdown: AdminStatusBreakdown[]
+  periodOrderCount: number
+  users: {
+    total: number
+    customers: number
+    owners: number
+    pendingOwners: number
+    blocked: number
+  }
+}
+
 function getOrderStatus(order: any) {
   return (order?.orderStatus || order?.status || 'pending').toString().toLowerCase()
 }
@@ -48,6 +100,12 @@ export function updateSepaySettings(data: {
 }
 
 // Dashboard stats
+export function getAdminAnalytics(period: AdminAnalyticsPeriod = '30days') {
+  return apiClient<AdminAnalytics>(`/reports/analytics?period=${period}`, {
+    method: 'GET'
+  })
+}
+
 export async function getDashboardStats() {
   try {
     return await apiClient<any>('/reports/dashboard', {
@@ -171,8 +229,9 @@ export async function deliverOrder(orderId: string) {
 }
 
 // Admin Coupons
-export function getCoupons() {
-  return apiClient<any[]>('/coupons', {
+export function getCoupons(scope?: string) {
+  const query = scope ? `?scope=${scope}` : ''
+  return apiClient<any[]>(`/coupons${query}`, {
     method: 'GET'
   })
 }

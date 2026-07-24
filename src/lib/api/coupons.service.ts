@@ -1,9 +1,9 @@
 import { apiClient } from './client'
 
-export function validateCoupon(code: string, orderTotal: number) {
+export function validateCoupon(code: string, orderTotal: number, items?: any[]) {
   return apiClient<any>('/coupons/validate', {
     method: 'POST',
-    body: JSON.stringify({ code, orderTotal })
+    body: JSON.stringify({ code, orderTotal, items })
   })
 }
 
@@ -33,5 +33,8 @@ export const STATIC_COUPONS = [
 ]
 
 export function getActiveCoupons(): Promise<any[]> {
-  return Promise.resolve(STATIC_COUPONS)
+  return apiClient<any[]>('/coupons/active').catch((err) => {
+    console.error('Failed to fetch active coupons from API, fallback to static:', err)
+    return STATIC_COUPONS
+  })
 }

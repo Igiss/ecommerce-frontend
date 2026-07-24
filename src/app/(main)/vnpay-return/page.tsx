@@ -85,7 +85,7 @@ function VNPayReturnContent() {
           </div>
           <h1 className="text-2xl font-bold text-stone-900 tracking-tight mb-2">Thanh toán thành công!</h1>
           <p className="text-sm text-stone-500 leading-relaxed max-w-md mx-auto">
-            Cảm ơn bạn đã tin tưởng CupShop. Đơn hàng của bạn đã được thanh toán và đang được chuyển sang bộ phận in ấn 3D.
+            Cảm ơn bạn đã tin tưởng Gia Dụng 24h. Đơn hàng của bạn đã được thanh toán và đang được chuyển sang bộ phận xử lý.
           </p>
 
           {orderId && (

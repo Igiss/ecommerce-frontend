@@ -1,505 +1,821 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { getDashboardStats, getRevenueChart } from '@/lib/api/admin.service'
-import { getProducts } from '@/lib/api/products.service'
-import type { Product } from '@/types/product'
-import { DollarSign, ShoppingBag, Package, Users, AlertTriangle, ArrowUpRight, Sparkles } from 'lucide-react'
-import { AiReportModal } from '@/components/UI/AiReportModal'
+import Link from "next/link"
+import { useEffect, useMemo, useState, type CSSProperties } from "react"
+import {
+  ArrowRight,
+  BadgeDollarSign,
+  Boxes,
+  CheckCircle2,
+  CircleAlert,
+  Clock3,
+  Package,
+  RefreshCw,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Store,
+  TrendingUp,
+  Truck,
+  UserCheck,
+  Users,
+  Warehouse,
+  type LucideIcon,
+} from "lucide-react"
+import { AiReportModal } from "@/components/UI/AiReportModal"
+import {
+  getAdminAnalytics,
+  getAiTrendReport,
+  type AdminAnalytics,
+  type AdminAnalyticsPeriod,
+  type AdminStatusBreakdown,
+} from "@/lib/api/admin.service"
+
+const PERIOD_OPTIONS: Array<{
+  value: AdminAnalyticsPeriod
+  label: string
+  caption: string
+}> = [
+  { value: "7days", label: "7 ngày", caption: "7 ngày gần nhất" },
+  { value: "30days", label: "30 ngày", caption: "30 ngày gần nhất" },
+  { value: "12months", label: "12 tháng", caption: "12 tháng gần nhất" },
+]
+
+const STATUS_CONFIG: Record<
+  AdminStatusBreakdown["_id"],
+  { label: string; color: string }
+> = {
+  pending: { label: "Chờ xác nhận", color: "#f59e0b" },
+  confirmed: { label: "Đã xác nhận", color: "#3b82f6" },
+  assigned: { label: "Đã phân giao", color: "#8b5cf6" },
+  shipping: { label: "Đang giao", color: "#06b6d4" },
+  completed: { label: "Hoàn tất", color: "#10b981" },
+  cancelled: { label: "Đã hủy", color: "#f43f5e" },
+}
+
+const STATUS_ORDER = Object.keys(
+  STATUS_CONFIG,
+) as AdminStatusBreakdown["_id"][]
+
+function formatCurrency(value: number) {
+  return `${Math.round(value || 0).toLocaleString("vi-VN")}đ`
+}
+
+function formatCompactCurrency(value: number) {
+  if (!value) return "0đ"
+  return `${new Intl.NumberFormat("vi-VN", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value)}đ`
+}
+
+function KpiCard({
+  label,
+  value,
+  description,
+  icon: Icon,
+  tone,
+}: {
+  label: string
+  value: string | number
+  description: string
+  icon: LucideIcon
+  tone: "amber" | "blue" | "emerald" | "violet"
+}) {
+  const toneClasses = {
+    amber: "border-amber-100 bg-amber-50 text-amber-700",
+    blue: "border-blue-100 bg-blue-50 text-blue-700",
+    emerald: "border-emerald-100 bg-emerald-50 text-emerald-700",
+    violet: "border-violet-100 bg-violet-50 text-violet-700",
+  }
+
+  return (
+    <article className="group rounded-2xl border border-stone-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(28,25,23,0.04)] transition-all hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-[0_12px_30px_rgba(28,25,23,0.08)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-stone-400">
+            {label}
+          </p>
+          <p className="mt-2 truncate text-2xl font-black tracking-tight text-stone-900">
+            {value}
+          </p>
+        </div>
+        <div
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${toneClasses[tone]}`}
+        >
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+      <p className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-stone-500">
+        <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+        {description}
+      </p>
+    </article>
+  )
+}
+
+type ChartDatum = {
+  key: string
+  label: string
+  revenue: number
+  orders: number
+}
+
+function buildChartData(analytics: AdminAnalytics): ChartDatum[] {
+  const values = new Map(
+    analytics.revenueChart.map((point) => [
+      `${point._id.year}-${point._id.month}-${point._id.day || 1}`,
+      point,
+    ]),
+  )
+  const endDate = new Date(analytics.periodEnd)
+
+  if (analytics.period === "12months") {
+    return Array.from({ length: 12 }, (_, index) => {
+      const date = new Date(
+        endDate.getFullYear(),
+        endDate.getMonth() - 11 + index,
+        1,
+      )
+      const key = `${date.getFullYear()}-${date.getMonth() + 1}-1`
+      const point = values.get(key)
+      return {
+        key,
+        label: `T${date.getMonth() + 1}/${String(date.getFullYear()).slice(-2)}`,
+        revenue: point?.revenue || 0,
+        orders: point?.orders || 0,
+      }
+    })
+  }
+
+  const length = analytics.period === "7days" ? 7 : 30
+  return Array.from({ length }, (_, index) => {
+    const date = new Date(endDate)
+    date.setHours(0, 0, 0, 0)
+    date.setDate(date.getDate() - (length - 1 - index))
+    const key = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+    const point = values.get(key)
+
+    return {
+      key,
+      label:
+        analytics.period === "7days"
+          ? new Intl.DateTimeFormat("vi-VN", { weekday: "short" }).format(date)
+          : `${date.getDate()}/${date.getMonth() + 1}`,
+      revenue: point?.revenue || 0,
+      orders: point?.orders || 0,
+    }
+  })
+}
+
+function RevenueChart({ analytics }: { analytics: AdminAnalytics }) {
+  const data = useMemo(() => buildChartData(analytics), [analytics])
+  const chartWidth = 760
+  const chartHeight = 260
+  const left = 58
+  const right = 16
+  const top = 18
+  const bottom = 34
+  const plotWidth = chartWidth - left - right
+  const plotHeight = chartHeight - top - bottom
+  const maxRevenue = Math.max(...data.map((item) => item.revenue), 0)
+  const scaleMax = maxRevenue > 0 ? maxRevenue * 1.12 : 1
+  const points = data.map((item, index) => ({
+    ...item,
+    x: left + (index / Math.max(data.length - 1, 1)) * plotWidth,
+    y: top + plotHeight - (item.revenue / scaleMax) * plotHeight,
+  }))
+  const linePath = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+    .join(" ")
+  const areaPath = points.length
+    ? `${linePath} L ${points.at(-1)?.x} ${top + plotHeight} L ${points[0].x} ${top + plotHeight} Z`
+    : ""
+  const labelIndexes = new Set(
+    Array.from({ length: 5 }, (_, index) =>
+      Math.round((index * (data.length - 1)) / 4),
+    ),
+  )
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-stone-400">
+            Doanh thu toàn hệ thống
+          </p>
+          <p className="mt-1 text-2xl font-black tracking-tight text-stone-900">
+            {formatCurrency(analytics.dashboard.totalRevenue)}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          {analytics.dashboard.completedOrders} đơn hoàn tất
+        </div>
+      </div>
+
+      <div className="relative">
+        <svg
+          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+          className="h-auto w-full overflow-visible"
+          role="img"
+          aria-label="Biểu đồ doanh thu toàn hệ thống"
+        >
+          <defs>
+            <linearGradient id="adminRevenueArea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#d97706" stopOpacity="0.24" />
+              <stop offset="100%" stopColor="#d97706" stopOpacity="0.01" />
+            </linearGradient>
+          </defs>
+
+          {Array.from({ length: 5 }, (_, index) => {
+            const y = top + (index / 4) * plotHeight
+            const value = scaleMax * (1 - index / 4)
+            return (
+              <g key={index}>
+                <line
+                  x1={left}
+                  y1={y}
+                  x2={chartWidth - right}
+                  y2={y}
+                  stroke="#e7e5e4"
+                  strokeDasharray="4 5"
+                />
+                <text
+                  x={left - 10}
+                  y={y + 4}
+                  textAnchor="end"
+                  fill="#a8a29e"
+                  fontSize="10"
+                  fontWeight="600"
+                >
+                  {formatCompactCurrency(value)}
+                </text>
+              </g>
+            )
+          })}
+
+          {areaPath && <path d={areaPath} fill="url(#adminRevenueArea)" />}
+          {linePath && (
+            <path
+              d={linePath}
+              fill="none"
+              stroke="#d97706"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+
+          {points.map((point, index) => (
+            <g key={point.key}>
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r={data.length <= 12 ? 4 : 2.5}
+                fill="white"
+                stroke="#d97706"
+                strokeWidth="2"
+              >
+                <title>
+                  {point.label}: {formatCurrency(point.revenue)} · {point.orders} đơn
+                </title>
+              </circle>
+              {labelIndexes.has(index) && (
+                <text
+                  x={point.x}
+                  y={chartHeight - 9}
+                  textAnchor="middle"
+                  fill="#78716c"
+                  fontSize="10"
+                  fontWeight="600"
+                >
+                  {point.label}
+                </text>
+              )}
+            </g>
+          ))}
+        </svg>
+
+        {maxRevenue === 0 && (
+          <div className="pointer-events-none absolute inset-x-16 top-[43%] text-center">
+            <p className="text-sm font-bold text-stone-500">
+              Chưa có doanh thu hoàn tất trong kỳ này
+            </p>
+            <p className="mt-1 text-[11px] text-stone-400">
+              Biểu đồ sẽ tự cập nhật khi có đơn hoàn thành.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function OrderStatusCard({ analytics }: { analytics: AdminAnalytics }) {
+  const rows = STATUS_ORDER.map((status) => {
+    const source = analytics.statusBreakdown.find((item) => item._id === status)
+    return {
+      status,
+      ...STATUS_CONFIG[status],
+      count: source?.orders || 0,
+    }
+  })
+  const total = rows.reduce((sum, item) => sum + item.count, 0)
+  let cursor = 0
+  const gradient = total
+    ? `conic-gradient(${rows
+        .filter((item) => item.count > 0)
+        .map((item) => {
+          const start = cursor
+          cursor += (item.count / total) * 100
+          return `${item.color} ${start}% ${cursor}%`
+        })
+        .join(", ")})`
+    : "#e7e5e4"
+  const completed =
+    rows.find((item) => item.status === "completed")?.count || 0
+  const completionRate = total ? Math.round((completed / total) * 100) : 0
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-black text-stone-900">
+            Trạng thái đơn hàng
+          </h2>
+          <p className="mt-1 text-[11px] text-stone-500">
+            Tổng hợp vận hành toàn hệ thống
+          </p>
+        </div>
+        <span className="rounded-lg bg-stone-100 px-2.5 py-1 text-[10px] font-bold text-stone-600">
+          {analytics.periodOrderCount} đơn
+        </span>
+      </div>
+
+      <div className="my-5 flex justify-center">
+        <div
+          className="relative flex h-36 w-36 items-center justify-center rounded-full"
+          style={{ background: gradient } as CSSProperties}
+        >
+          <div className="flex h-[104px] w-[104px] flex-col items-center justify-center rounded-full bg-white shadow-inner">
+            <span className="text-2xl font-black text-stone-900">
+              {completionRate}%
+            </span>
+            <span className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-stone-400">
+              hoàn tất
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+        {rows.map((item) => (
+          <div key={item.status} className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="truncate text-[10px] font-medium text-stone-600">
+                {item.label}
+              </span>
+            </div>
+            <span className="text-[11px] font-black text-stone-800">
+              {item.count}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="animate-pulse space-y-6">
+      <div className="flex justify-between">
+        <div className="space-y-3">
+          <div className="h-7 w-72 rounded-lg bg-stone-200" />
+          <div className="h-3 w-96 rounded bg-stone-100" />
+        </div>
+        <div className="h-11 w-44 rounded-xl bg-stone-200" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className="h-36 rounded-2xl bg-stone-200/70" />
+        ))}
+      </div>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(280px,0.85fr)]">
+        <div className="h-[390px] rounded-2xl bg-stone-200/70" />
+        <div className="h-[390px] rounded-2xl bg-stone-200/70" />
+      </div>
+    </div>
+  )
+}
 
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState<any>(null)
-  const [chartData, setChartData] = useState<any[]>([])
-  const [topProducts, setTopProducts] = useState<any[]>([])
+  const [period, setPeriod] = useState<AdminAnalyticsPeriod>("30days")
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
-  
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState("")
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
-  const [aiReport, setAiReport] = useState('')
+  const [aiReport, setAiReport] = useState("")
   const [aiLoading, setAiLoading] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setRefreshing(true)
+    setError("")
+
+    getAdminAnalytics(period)
+      .then((data) => {
+        if (!cancelled) setAnalytics(data)
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Không thể tải dữ liệu thống kê quản trị.",
+          )
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false)
+          setRefreshing(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [period])
 
   const handleGenerateAiReport = async () => {
     setIsAiModalOpen(true)
     setAiLoading(true)
+    setAiReport("")
     try {
-      const { getAiTrendReport } = await import('@/lib/api/admin.service')
-      const res = await getAiTrendReport()
-      setAiReport(res.report || '')
-    } catch (err: any) {
-      setAiReport('Đã xảy ra lỗi khi tạo báo cáo AI: ' + (err.message || err))
+      const response = await getAiTrendReport()
+      setAiReport(response.report || "Chưa có nội dung phân tích.")
+    } catch {
+      setAiReport(
+        "Hiện chưa thể tạo báo cáo AI. Hệ thống có thể đang bận, bạn vui lòng thử lại sau ít phút.",
+      )
     } finally {
       setAiLoading(false)
     }
   }
 
-  const [chartPeriod, setChartPeriod] = useState<'7days' | '30days'>('30days')
-
-  useEffect(() => {
-    setLoading(true)
-    Promise.all([getDashboardStats(), getProducts()])
-      .then(([statsRes, productsData]: [any, any]) => {
-        setStats(statsRes)
-        
-        // Process top products from products list
-        let pList: Product[] = []
-        if (Array.isArray(productsData)) pList = productsData
-        else if (productsData && typeof productsData === 'object') {
-          if ('items' in productsData && Array.isArray(productsData.items)) pList = productsData.items
-          else if ('products' in productsData && Array.isArray(productsData.products)) pList = productsData.products
-        }
-        
-        const sorted = pList
-          .map((p: any) => ({
-            name: p.name,
-            image: p.images?.[0] || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600',
-            totalSold: p.soldCount || 0,
-            revenue: (p.soldCount || 0) * p.price
-          }))
-          .filter(p => p.totalSold > 0)
-          .sort((a, b) => b.totalSold - a.totalSold)
-          .slice(0, 10)
-        setTopProducts(sorted)
-        setError('')
-      })
-      .catch((err: any) => {
-        console.error('Failed to load stats:', err)
-        const msg = err.message || ''
-        if (
-          msg.includes('403') || 
-          msg.toLowerCase().includes('forbidden') || 
-          msg.includes('401') || 
-          msg.toLowerCase().includes('unauthorized')
-        ) {
-          setError('Tài khoản hiện tại của bạn không có quyền quản trị (Admin). Vui lòng Đăng xuất và đăng nhập lại bằng tài khoản Admin (ví dụ: admin@cupstore.com / Admin123!).')
-        } else {
-          setError('Không thể tải dữ liệu thống kê quản trị. Hãy kiểm tra kết nối server.')
-        }
-      })
-      .finally(() => setLoading(false))
-  }, [])
-
-  // Fetch chart data separately when chartPeriod changes
-  useEffect(() => {
-    getRevenueChart({ period: chartPeriod })
-      .then((chartRes: any) => {
-        const normalizedChart: any[] = []
-        const daysToPad = chartPeriod === '7days' ? 7 : 30
-        
-        for (let i = daysToPad - 1; i >= 0; i--) {
-          const d = new Date()
-          d.setDate(d.getDate() - i)
-          const dateStr = `${d.getDate()}/${d.getMonth() + 1}`
-          
-          const match = (chartRes || []).find((item: any) => {
-            if (item._id && typeof item._id === 'object') {
-              return Number(item._id.day) === d.getDate() && Number(item._id.month) === (d.getMonth() + 1)
-            }
-            return false
-          })
-
-          normalizedChart.push({
-            date: dateStr,
-            revenue: match ? match.revenue : 0,
-            orders: match ? match.orders : 0
-          })
-        }
-        setChartData(normalizedChart)
-      })
-      .catch((err) => console.error('Failed to fetch chart:', err))
-  }, [chartPeriod])
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-800 border-t-transparent"></div>
-      </div>
-    )
+  if (loading && !analytics) {
+    return <DashboardSkeleton />
   }
 
-  if (error) {
+  if (!analytics) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center shadow-xs">
-        <p className="text-red-700 font-bold mb-4">{error}</p>
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center shadow-sm">
+        <CircleAlert className="mx-auto h-10 w-10 text-red-500" />
+        <p className="mt-3 font-bold text-red-700">
+          {error || "Không thể tải dữ liệu thống kê quản trị."}
+        </p>
         <button
           onClick={() => window.location.reload()}
-          className="rounded-xl bg-red-600 hover:bg-red-700 transition-colors text-white px-5 py-2 text-xs font-bold"
+          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-red-700"
         >
+          <RefreshCw className="h-4 w-4" />
           Tải lại trang
         </button>
       </div>
     )
   }
-  const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map(d => d.revenue || 0), 100000) : 100000
 
-  // SVG Chart Dimensions
-  const svgWidth = 600
-  const svgHeight = 245
-  const paddingLeft = 55
-  const paddingRight = 20
-  const paddingTop = 25
-  const paddingBottom = 40
-  const chartWidth = svgWidth - paddingLeft - paddingRight
-  const chartHeight = svgHeight - paddingTop - paddingBottom
-
-  const points = chartData.map((d: any, idx: number) => {
-    const x = chartData.length === 1
-      ? paddingLeft + chartWidth / 2
-      : paddingLeft + (idx * (chartWidth / (chartData.length - 1)))
-    const y = (svgHeight - paddingBottom) - ((d.revenue / maxRevenue) * chartHeight)
-    return { x, y, data: d, idx }
-  })
-
-  // Line & Area Paths
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
-  const areaPath = points.length > 0 
-    ? `${linePath} L ${points[points.length - 1].x} ${svgHeight - paddingBottom} L ${points[0].x} ${svgHeight - paddingBottom} Z` 
-    : ''
-
-  const gridValues = [0, 0.25, 0.5, 0.75, 1]
+  const periodCaption =
+    PERIOD_OPTIONS.find((item) => item.value === period)?.caption ||
+    "Kỳ được chọn"
+  const statusCount = (status: AdminStatusBreakdown["_id"]) =>
+    analytics.statusBreakdown.find((item) => item._id === status)?.orders || 0
+  const completedOrders = statusCount("completed")
+  const pendingOrders = statusCount("pending")
+  const inDeliveryOrders = statusCount("assigned") + statusCount("shipping")
+  const averageOrderValue = completedOrders
+    ? analytics.dashboard.totalRevenue / completedOrders
+    : 0
+  const maxProductSold = Math.max(
+    ...analytics.topProducts.map((item) => item.totalSold),
+    1,
+  )
 
   return (
-    <div className="space-y-8">
-      {/* Page Title & AI Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 pb-8">
+      <header className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
         <div>
-          <h1 className="text-2xl font-black text-stone-900 tracking-tight">Thống kê hệ thống</h1>
-          <p className="text-xs text-stone-550 mt-1">Tổng quan về kết quả kinh doanh và số liệu vận hành của cửa hàng.</p>
+          <h1 className="flex items-center gap-2.5 text-2xl font-black tracking-tight text-stone-900">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-900 text-amber-400">
+              <ShieldCheck className="h-5 w-5" />
+            </span>
+            Trung tâm điều hành
+          </h1>
+          <p className="mt-2 text-xs text-stone-500">
+            Theo dõi sức khỏe kinh doanh và những việc cần ưu tiên trên toàn hệ thống.
+          </p>
         </div>
+
         <button
           onClick={handleGenerateAiReport}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold shadow-md shadow-amber-600/20 hover:from-amber-700 hover:to-orange-700 transition-all hover:-translate-y-0.5 active:translate-y-0 text-sm whitespace-nowrap"
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-amber-600/20 transition-all hover:-translate-y-0.5 hover:from-amber-700 hover:to-orange-700"
         >
           <Sparkles className="h-4 w-4" />
           Phân tích xu hướng (AI)
         </button>
+      </header>
+
+      <div className="flex flex-col justify-between gap-3 rounded-2xl border border-stone-200/80 bg-white p-3 shadow-sm sm:flex-row sm:items-center">
+        <div className="px-2">
+          <p className="text-xs font-bold text-stone-800">Kỳ báo cáo</p>
+          <p className="mt-0.5 text-[10px] text-stone-400">
+            Doanh thu chỉ tính các đơn hàng đã hoàn tất.
+          </p>
+        </div>
+        <div className="flex rounded-xl bg-stone-100 p-1">
+          {PERIOD_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setPeriod(option.value)}
+              className={`relative flex-1 rounded-lg px-4 py-2 text-xs font-bold transition-all sm:flex-none ${
+                period === option.value
+                  ? "bg-white text-amber-800 shadow-sm"
+                  : "text-stone-500 hover:text-stone-800"
+              }`}
+            >
+              {option.label}
+              {period === option.value && refreshing && (
+                <RefreshCw className="ml-1.5 inline h-3 w-3 animate-spin" />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Revenue Card */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-xs flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center shrink-0">
-            <DollarSign className="h-6 w-6" />
-          </div>
-          <div>
-            <span className="text-xs text-stone-400 font-semibold uppercase">Doanh thu</span>
-            <h3 className="text-lg font-extrabold text-stone-900 mt-0.5">
-              {(stats?.totalRevenue || stats?.revenue || 0).toLocaleString('vi-VN')}đ
-            </h3>
-          </div>
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
+          <CircleAlert className="h-4 w-4 shrink-0" />
+          Chưa thể làm mới số liệu: {error}
         </div>
+      )}
 
-        {/* Orders Card */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-xs flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-blue-50 text-blue-800 flex items-center justify-center shrink-0">
-            <ShoppingBag className="h-6 w-6" />
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          label="Doanh thu hệ thống"
+          value={formatCurrency(analytics.dashboard.totalRevenue)}
+          description={`${periodCaption} · đơn hoàn tất`}
+          icon={BadgeDollarSign}
+          tone="amber"
+        />
+        <KpiCard
+          label="Tổng đơn hàng"
+          value={analytics.periodOrderCount}
+          description={`${periodCaption} · mọi trạng thái`}
+          icon={ShoppingBag}
+          tone="blue"
+        />
+        <KpiCard
+          label="Khách hàng"
+          value={analytics.users.customers}
+          description={`${analytics.users.total} tài khoản toàn hệ thống`}
+          icon={Users}
+          tone="emerald"
+        />
+        <KpiCard
+          label="Shop đang hoạt động"
+          value={analytics.users.owners}
+          description={`${analytics.users.pendingOwners} yêu cầu đang chờ duyệt`}
+          icon={Store}
+          tone="violet"
+        />
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(300px,0.85fr)]">
+        <article className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6">
+          <RevenueChart analytics={analytics} />
+        </article>
+        <article className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6">
+          <OrderStatusCard analytics={analytics} />
+        </article>
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-2">
+        <article className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-black text-stone-900">
+                Sản phẩm bán chạy
+              </h2>
+              <p className="mt-1 text-[11px] text-stone-500">
+                Xếp hạng theo số lượng bán trong {periodCaption.toLowerCase()}
+              </p>
+            </div>
+            <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">
+              Top 5
+            </span>
           </div>
-          <div className="flex-1">
-            <span className="text-xs text-stone-400 font-semibold uppercase">Đơn hàng</span>
-            <h3 className="text-lg font-extrabold text-stone-900 mt-0.5">{stats?.totalOrders || 0}</h3>
-            <p className="text-[10px] text-stone-500 mt-0.5">
-              {stats?.pendingOrders || 0} đang chờ | {stats?.completedOrders || stats?.deliveredOrders || 0} đã giao
+
+          {analytics.topProducts.length > 0 ? (
+            <div className="mt-5 space-y-4">
+              {analytics.topProducts.slice(0, 5).map((product, index) => (
+                <div key={product._id} className="flex items-center gap-3">
+                  <span
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-black ${
+                      index === 0
+                        ? "bg-amber-100 text-amber-800"
+                        : "bg-stone-100 text-stone-500"
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-stone-100 bg-stone-50">
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="h-full w-full object-contain"
+                      />
+                    ) : (
+                      <Package className="h-4 w-4 text-stone-300" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate text-xs font-bold text-stone-800">
+                        {product.name}
+                      </p>
+                      <span className="shrink-0 text-[11px] font-black text-stone-800">
+                        {product.totalSold} đã bán
+                      </span>
+                    </div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-100">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500"
+                        style={{
+                          width: `${Math.max(
+                            (product.totalSold / maxProductSold) * 100,
+                            5,
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="mt-1 text-[9px] font-medium text-stone-400">
+                      {formatCurrency(product.revenue)} doanh thu
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-5 flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-stone-200 bg-stone-50/70 text-center">
+              <Package className="h-8 w-8 text-stone-300" />
+              <p className="mt-2 text-xs font-bold text-stone-500">
+                Chưa có sản phẩm bán chạy
+              </p>
+              <p className="mt-1 text-[10px] text-stone-400">
+                Số liệu sẽ xuất hiện khi có đơn hoàn tất.
+              </p>
+            </div>
+          )}
+        </article>
+
+        <article className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6">
+          <div>
+            <h2 className="text-base font-black text-stone-900">
+              Việc cần ưu tiên
+            </h2>
+            <p className="mt-1 text-[11px] text-stone-500">
+              Các chỉ số cần Admin kiểm tra và xử lý
+            </p>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            <Link
+              href="/admin/users"
+              className="group flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/70 p-3.5 transition-colors hover:bg-violet-50"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-violet-700 shadow-sm">
+                <UserCheck className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-stone-800">
+                  Yêu cầu mở shop
+                </p>
+                <p className="mt-0.5 text-[10px] text-stone-500">
+                  Kiểm tra hồ sơ và phê duyệt
+                </p>
+              </div>
+              <span className="rounded-lg bg-violet-600 px-2.5 py-1 text-xs font-black text-white">
+                {analytics.users.pendingOwners}
+              </span>
+              <ArrowRight className="h-4 w-4 text-violet-500" />
+            </Link>
+
+            <div className="flex items-center gap-3 rounded-xl border border-amber-100 bg-amber-50/70 p-3.5">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-amber-700 shadow-sm">
+                <Clock3 className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-stone-800">
+                  Đơn chờ xác nhận
+                </p>
+                <p className="mt-0.5 text-[10px] text-stone-500">
+                  Cần được kiểm tra để tiếp tục xử lý
+                </p>
+              </div>
+              <span className="rounded-lg bg-amber-600 px-2.5 py-1 text-xs font-black text-white">
+                {pendingOrders}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 rounded-xl border border-rose-100 bg-rose-50/70 p-3.5">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-rose-700 shadow-sm">
+                <Warehouse className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-stone-800">
+                  Sản phẩm sắp hết hàng
+                </p>
+                <p className="mt-0.5 text-[10px] text-stone-500">
+                  Tồn kho dưới 5 sản phẩm
+                </p>
+              </div>
+              <span className="rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-black text-white">
+                {analytics.dashboard.lowStockProducts}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-4 divide-x divide-stone-200 rounded-xl border border-stone-200 bg-stone-50/60 py-3">
+            <div className="px-2 text-center">
+              <Boxes className="mx-auto h-4 w-4 text-blue-600" />
+              <p className="mt-1.5 text-sm font-black text-stone-900">
+                {analytics.dashboard.totalProducts}
+              </p>
+              <p className="text-[9px] font-medium text-stone-400">Sản phẩm</p>
+            </div>
+            <div className="px-2 text-center">
+              <Truck className="mx-auto h-4 w-4 text-cyan-600" />
+              <p className="mt-1.5 text-sm font-black text-stone-900">
+                {inDeliveryOrders}
+              </p>
+              <p className="text-[9px] font-medium text-stone-400">Đang giao</p>
+            </div>
+            <div className="px-2 text-center">
+              <ShieldCheck className="mx-auto h-4 w-4 text-rose-600" />
+              <p className="mt-1.5 text-sm font-black text-stone-900">
+                {analytics.users.blocked}
+              </p>
+              <p className="text-[9px] font-medium text-stone-400">Đã khóa</p>
+            </div>
+            <div className="px-2 text-center">
+              <BadgeDollarSign className="mx-auto h-4 w-4 text-emerald-600" />
+              <p className="mt-1.5 truncate text-xs font-black text-stone-900">
+                {formatCompactCurrency(averageOrderValue)}
+              </p>
+              <p className="text-[9px] font-medium text-stone-400">TB/đơn</p>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-white px-5 py-4 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+            <CheckCircle2 className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-xs font-bold text-stone-800">
+              Số liệu được tổng hợp trực tiếp từ hệ thống
+            </p>
+            <p className="mt-0.5 text-[10px] text-stone-500">
+              Kỳ này có {analytics.periodOrderCount} đơn hàng và{" "}
+              {completedOrders} đơn đã hoàn tất.
             </p>
           </div>
         </div>
-
-        {/* Products Card */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-xs flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-green-50 text-green-800 flex items-center justify-center shrink-0">
-            <Package className="h-6 w-6" />
-          </div>
-          <div className="flex-1">
-            <span className="text-xs text-stone-400 font-semibold uppercase">Sản phẩm</span>
-            <h3 className="text-lg font-extrabold text-stone-900 mt-0.5">{stats?.totalProducts || 0}</h3>
-            {stats?.lowStockProducts > 0 && (
-              <p className="text-[10px] text-red-600 mt-0.5 flex items-center gap-1 font-bold">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                {stats.lowStockProducts} mặt hàng sắp hết
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Users Card */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-xs flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-stone-100 text-stone-850 flex items-center justify-center shrink-0">
-            <Users className="h-6 w-6" />
-          </div>
-          <div>
-            <span className="text-xs text-stone-400 font-semibold uppercase">Khách hàng</span>
-            <h3 className="text-lg font-extrabold text-stone-900 mt-0.5">{stats?.totalUsers || 0}</h3>
-          </div>
-        </div>
+        <Link
+          href="/admin/users"
+          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 hover:text-emerald-900"
+        >
+          Quản lý tài khoản
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Revenue Chart - SVG Line Chart */}
-        <div className="lg:col-span-8 rounded-2xl border border-stone-200 bg-white p-6 shadow-xs relative">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider">Doanh thu theo thời gian</h3>
-            
-            {/* Period Toggle Group */}
-            <div className="flex gap-1 bg-stone-105 p-1 rounded-xl border border-stone-200 shadow-3xs">
-              <button
-                onClick={() => setChartPeriod('7days')}
-                className={`px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all duration-200 cursor-pointer focus:outline-none ${
-                  chartPeriod === '7days'
-                    ? 'bg-amber-800 text-white shadow-xs'
-                    : 'text-stone-500 hover:text-stone-750'
-                }`}
-              >
-                7 ngày
-              </button>
-              <button
-                onClick={() => setChartPeriod('30days')}
-                className={`px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all duration-200 cursor-pointer focus:outline-none ${
-                  chartPeriod === '30days'
-                    ? 'bg-amber-800 text-white shadow-xs'
-                    : 'text-stone-500 hover:text-stone-750'
-                }`}
-              >
-                30 ngày
-              </button>
-            </div>
-          </div>
-          
-          {chartData.length === 0 ? (
-            <div className="h-60 flex items-center justify-center text-xs text-stone-400">
-              Không có dữ liệu biểu đồ.
-            </div>
-          ) : (
-            <div className="w-full overflow-hidden">
-              <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" height="auto" className="overflow-visible">
-                <defs>
-                  <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#b45309" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#b45309" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-
-                {/* Grid lines & Y-Axis Labels */}
-                {gridValues.map((val, idx) => {
-                  const y = (svgHeight - paddingBottom) - (val * chartHeight)
-                  const labelVal = Math.round(val * maxRevenue)
-                  return (
-                    <g key={idx} className="opacity-60">
-                      <line
-                        x1={paddingLeft}
-                        y1={y}
-                        x2={svgWidth - paddingRight}
-                        y2={y}
-                        stroke="#f5f5f4"
-                        strokeWidth="1.5"
-                      />
-                      <text
-                        x={paddingLeft - 12}
-                        y={y + 3.5}
-                        textAnchor="end"
-                        className="text-[9px] fill-stone-400 font-bold"
-                      >
-                        {labelVal >= 1000000 
-                          ? `${(labelVal / 1000000).toFixed(1)}M` 
-                          : labelVal >= 1000 
-                            ? `${(labelVal / 1000).toFixed(0)}k` 
-                            : labelVal}đ
-                      </text>
-                    </g>
-                  )
-                })}
-
-                {/* Area under the line */}
-                {areaPath && (
-                  <path d={areaPath} fill="url(#chart-gradient)" />
-                )}
-
-                {/* The line */}
-                {linePath && (
-                  <path
-                    d={linePath}
-                    fill="none"
-                    stroke="#b45309"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                )}
-
-                {/* Data Points */}
-                {points.map((p, idx) => (
-                  <circle
-                    key={idx}
-                    cx={p.x}
-                    cy={p.y}
-                    r="4"
-                    fill="#ffffff"
-                    stroke="#b45309"
-                    strokeWidth="2.5"
-                  />
-                ))}
-
-                {/* Interactive Hover Guides & Dots */}
-                {hoveredIndex !== null && points[hoveredIndex] && (
-                  <g>
-                    {/* Vertical guideline */}
-                    <line
-                      x1={points[hoveredIndex].x}
-                      y1={paddingTop - 10}
-                      x2={points[hoveredIndex].x}
-                      y2={svgHeight - paddingBottom}
-                      stroke="#b45309"
-                      strokeWidth="1.5"
-                      strokeDasharray="3 3"
-                      opacity="0.8"
-                    />
-                    {/* Hover pulsing ring */}
-                    <circle
-                      cx={points[hoveredIndex].x}
-                      cy={points[hoveredIndex].y}
-                      r="8"
-                      fill="#b45309"
-                      fillOpacity="0.2"
-                      className="animate-ping"
-                      style={{ transformOrigin: `${points[hoveredIndex].x}px ${points[hoveredIndex].y}px` }}
-                    />
-                    {/* Hover highlighted dot */}
-                    <circle
-                      cx={points[hoveredIndex].x}
-                      cy={points[hoveredIndex].y}
-                      r="6"
-                      fill="#b45309"
-                      stroke="#ffffff"
-                      strokeWidth="2"
-                    />
-
-                    {/* SVG Native Tooltip */}
-                    {(() => {
-                      const p = points[hoveredIndex]
-                      const tooltipWidth = 140
-                      const tooltipHeight = 65
-                      const tooltipX = p.x + tooltipWidth + 10 > svgWidth - paddingRight ? p.x - tooltipWidth - 10 : p.x + 10
-                      const tooltipY = Math.max(p.y - tooltipHeight / 2, paddingTop)
-
-                      return (
-                        <g>
-                          {/* Shadow rect */}
-                          <rect
-                            x={tooltipX + 2}
-                            y={tooltipY + 2}
-                            width={tooltipWidth}
-                            height={tooltipHeight}
-                            rx="8"
-                            fill="#000000"
-                            opacity="0.1"
-                          />
-                          {/* Tooltip container */}
-                          <rect
-                            x={tooltipX}
-                            y={tooltipY}
-                            width={tooltipWidth}
-                            height={tooltipHeight}
-                            rx="8"
-                            fill="#1c1917"
-                            stroke="#44403c"
-                            strokeWidth="1"
-                          />
-                          <text x={tooltipX + 12} y={tooltipY + 18} fill="#f59e0b" fontSize="10" fontWeight="extrabold" fontFamily="sans-serif">
-                            {p.data.date || p.data.month}
-                          </text>
-                          <text x={tooltipX + 12} y={tooltipY + 35} fill="#d6d3d1" fontSize="9" fontFamily="sans-serif">
-                            Doanh thu:
-                          </text>
-                          <text x={tooltipX + 62} y={tooltipY + 35} fill="#ffffff" fontSize="9" fontWeight="bold" fontFamily="sans-serif">
-                            {p.data.revenue.toLocaleString('vi-VN')}đ
-                          </text>
-                          <text x={tooltipX + 12} y={tooltipY + 50} fill="#d6d3d1" fontSize="9" fontFamily="sans-serif">
-                            Đơn hàng:
-                          </text>
-                          <text x={tooltipX + 62} y={tooltipY + 50} fill="#ffffff" fontSize="9" fontWeight="bold" fontFamily="sans-serif">
-                            {p.data.orders} đơn
-                          </text>
-                        </g>
-                      )
-                    })()}
-                  </g>
-                )}
-
-                {/* X-Axis Labels */}
-                {points.map((p, idx) => {
-                  const showLabel = chartPeriod === '7days' ? true : (idx === 0 || idx === points.length - 1 || idx % 5 === 0)
-                  if (!showLabel) return null
-                  return (
-                    <text
-                      key={idx}
-                      x={p.x}
-                      y={svgHeight - 15}
-                      textAnchor="middle"
-                      className="text-[9px] fill-stone-400 font-bold"
-                    >
-                      {p.data.date || p.data.month}
-                    </text>
-                  )
-                })}
-
-                {/* Invisible hover zones */}
-                {points.map((p, idx) => {
-                  const segmentWidth = chartWidth / (chartData.length || 1)
-                  const rectX = p.x - segmentWidth / 2
-                  return (
-                    <rect
-                      key={idx}
-                      x={rectX}
-                      y={paddingTop - 10}
-                      width={segmentWidth}
-                      height={chartHeight + 20}
-                      fill="transparent"
-                      className="cursor-pointer"
-                      onMouseEnter={() => setHoveredIndex(idx)}
-                      onMouseLeave={() => setHoveredIndex(null)}
-                    />
-                  )
-                })}
-              </svg>
-            </div>
-          )}
-        </div>
-
-        {/* Top selling products list */}
-        <div className="lg:col-span-4 rounded-2xl border border-stone-200 bg-white p-6 shadow-xs">
-          <h3 className="text-sm font-bold text-stone-900 mb-6 uppercase tracking-wider">Top sản phẩm bán chạy</h3>
-          
-          {topProducts.length === 0 ? (
-            <div className="py-12 text-center text-xs text-stone-400">
-              Chưa có dữ liệu sản phẩm bán chạy.
-            </div>
-          ) : (
-            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
-              {topProducts.map((p: any, idx: number) => {
-                const imageUrl = p.image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600'
-                return (
-                  <div key={idx} className="flex items-center gap-3 border-b border-stone-50 pb-3 last:border-b-0 last:pb-0">
-                    <span className="text-xs font-bold text-stone-400 w-5 text-center shrink-0">#{idx + 1}</span>
-                    <img src={imageUrl} alt={p.name} className="h-10 w-10 rounded-lg object-cover bg-stone-50 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-stone-800 truncate">{p.name}</p>
-                      <p className="text-[10px] text-stone-500 mt-0.5">Đã bán: {p.totalSold} chiếc</p>
-                    </div>
-                    <span className="text-xs font-extrabold text-amber-900 shrink-0">
-                      {p.revenue.toLocaleString('vi-VN')}đ
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <AiReportModal 
-        isOpen={isAiModalOpen} 
-        onClose={() => setIsAiModalOpen(false)} 
-        report={aiReport} 
-        loading={aiLoading} 
+      <AiReportModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        report={aiReport}
+        loading={aiLoading}
       />
     </div>
   )

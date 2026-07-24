@@ -165,7 +165,7 @@ export default function OwnerCouponsPage() {
         discountAmount,
         minOrderValue,
         maxDiscount: discountType === 'percentage' ? maxDiscount : undefined,
-        expiryDate: new Date(expiryDate),
+        expiryDate: new Date(expiryDate).toISOString(),
         usageLimit,
         isActive,
         applicableProductIds: applyScope === 'specific' && selectedProductId ? [selectedProductId] : []

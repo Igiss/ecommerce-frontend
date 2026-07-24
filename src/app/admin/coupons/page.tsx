@@ -26,11 +26,13 @@ export default function AdminCouponsPage() {
   const [formError, setFormError] = useState('')
   const [formLoading, setFormLoading] = useState(false)
 
-  const fetchCouponsList = () => {
+  const [scopeTab, setScopeTab] = useState<'system' | 'owner' | 'all'>('system')
+
+  const fetchCouponsList = (currentScope = scopeTab) => {
     setLoading(true)
-    getCoupons()
+    getCoupons(currentScope)
       .then((data: any) => {
-        setCoupons(data)
+        setCoupons(Array.isArray(data) ? data : [])
       })
       .catch(() => {
         setError('Không thể tải danh sách mã giảm giá.')
@@ -39,8 +41,8 @@ export default function AdminCouponsPage() {
   }
 
   useEffect(() => {
-    fetchCouponsList()
-  }, [])
+    fetchCouponsList(scopeTab)
+  }, [scopeTab])
 
   // Open modal for add
   const handleAddClick = () => {
@@ -116,7 +118,7 @@ export default function AdminCouponsPage() {
         discountAmount,
         minOrderValue,
         maxDiscount: discountType === 'percentage' ? maxDiscount : undefined,
-        expiryDate: new Date(expiryDate),
+        expiryDate: new Date(expiryDate).toISOString(),
         usageLimit,
         isActive
       }
@@ -155,6 +157,42 @@ export default function AdminCouponsPage() {
         >
           <Plus className="h-4.5 w-4.5" />
           Tạo mã Toàn Sàn mới
+        </button>
+      </div>
+
+      {/* Scope Filter Tabs */}
+      <div className="flex items-center gap-2 border-b border-stone-200 pb-3">
+        {/* <button
+          onClick={() => setScopeTab('system')}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+            scopeTab === 'system'
+              ? 'bg-amber-800 text-white shadow-sm'
+              : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+          }`}
+        >
+          <Globe className="h-4 w-4" />
+          Mã Toàn Sàn (Admin)
+        </button> */}
+        {/* <button
+          onClick={() => setScopeTab('owner')}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+            scopeTab === 'owner'
+              ? 'bg-amber-800 text-white shadow-sm'
+              : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+          }`}
+        >
+          <Ticket className="h-4 w-4" />
+          Mã Cửa Hàng (Shop Owner)
+        </button> */}
+        <button
+          onClick={() => setScopeTab('all')}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+            scopeTab === 'all'
+              ? 'bg-amber-800 text-white shadow-sm'
+              : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+          }`}
+        >
+          Tất Cả Mã
         </button>
       </div>
 
@@ -204,10 +242,17 @@ export default function AdminCouponsPage() {
                       </div>
                     </td>
                     <td className="py-3.5 px-6 text-xs">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-50 text-amber-900 border border-amber-200 font-bold">
-                        <Globe className="h-3 w-3 text-amber-700 shrink-0" />
-                        Toàn hệ thống
-                      </span>
+                      {coupon.ownerId && typeof coupon.ownerId === 'object' && (coupon.ownerId.storeName || coupon.ownerId.fullName) ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-stone-100 text-stone-800 border border-stone-250 font-bold">
+                          <Ticket className="h-3 w-3 text-stone-600 shrink-0" />
+                          Shop: {coupon.ownerId.storeName || coupon.ownerId.fullName}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-50 text-amber-900 border border-amber-200 font-bold">
+                          <Globe className="h-3 w-3 text-amber-700 shrink-0" />
+                          Toàn hệ thống
+                        </span>
+                      )}
                     </td>
                     <td className="py-3.5 px-6 text-xs text-stone-600">
                       {coupon.discountType === 'percentage' ? 'Phần trăm (%)' : 'Số tiền cố định'}

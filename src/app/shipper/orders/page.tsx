@@ -32,7 +32,7 @@ export default function ShipperOrdersPage() {
     if (!confirm('Bạn xác nhận ĐÃ LẤY HÀNG và bắt đầu đi giao?')) return
     setProcessingId(orderId)
     try {
-      await pickupOrder(orderId, { shippingProvider: 'CupShop Shipper' })
+      await pickupOrder(orderId, { shippingProvider: 'Gia Dụng 24h Express' })
       await fetchOrders()
     } catch (err: any) {
       alert(err.message || 'Lỗi cập nhật trạng thái')

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from 'react'
 import { getActiveCoupons } from '@/lib/api/coupons.service'
-import { Ticket, ChevronLeft, Copy, Check, Clock, Calendar, ShieldCheck, BadgeInfo, AlertCircle, ShoppingBag } from 'lucide-react'
+import { Ticket, ChevronLeft, Copy, Check, Clock, Calendar, ShieldCheck, BadgeInfo, AlertCircle, ShoppingBag, Store } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -207,12 +207,33 @@ export default function VoucherDetailPage({ params }: VoucherDetailPageProps) {
                   </span>
                 </div>
 
-                {coupon.ownerId && (
-                  <div className="flex justify-between items-start gap-4">
-                    <span className="text-stone-400 shrink-0">Cửa hàng áp dụng (Owner ID)</span>
-                    <span className="text-stone-850 font-mono text-[10px] break-all text-right">{coupon.ownerId}</span>
-                  </div>
-                )}
+                <div className="flex justify-between items-center gap-4">
+                  <span className="text-stone-400 shrink-0">Cửa hàng áp dụng</span>
+                  {coupon.ownerId ? (
+                    typeof coupon.ownerId === 'object' && (coupon.ownerId.storeName || coupon.ownerId.fullName) ? (
+                      <Link
+                        href={`/store/${encodeURIComponent(coupon.ownerId.storeName || coupon.ownerId.fullName)}`}
+                        className="font-bold text-amber-800 hover:text-amber-900 underline flex items-center gap-1.5 text-right transition-colors text-xs"
+                      >
+                        <Store className="h-3.5 w-3.5 text-amber-700" />
+                        {coupon.ownerId.storeName || coupon.ownerId.fullName}
+                      </Link>
+                    ) : (
+                      <Link
+                        href="/store"
+                        className="font-bold text-amber-800 hover:text-amber-900 underline flex items-center gap-1.5 text-right transition-colors text-xs"
+                      >
+                        <Store className="h-3.5 w-3.5 text-amber-700" />
+                        Xem Cửa Hàng
+                      </Link>
+                    )
+                  ) : (
+                    <span className="text-stone-850 font-bold text-right flex items-center gap-1.5 text-xs">
+                      <Store className="h-3.5 w-3.5 text-amber-700" />
+                      Toàn sàn (Tất cả cửa hàng)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -226,11 +247,18 @@ export default function VoucherDetailPage({ params }: VoucherDetailPageProps) {
 
           {/* Checkout action button */}
           <button
-            onClick={() => router.push('/store')}
+            onClick={() => {
+              if (coupon?.ownerId && typeof coupon.ownerId === 'object' && (coupon.ownerId.storeName || coupon.ownerId.fullName)) {
+                const storeSlug = encodeURIComponent(coupon.ownerId.storeName || coupon.ownerId.fullName)
+                router.push(`/store/${storeSlug}`)
+              } else {
+                router.push('/products')
+              }
+            }}
             className="w-full flex items-center justify-center gap-2 rounded-2xl bg-amber-800 hover:bg-amber-900 transition-colors py-3.5 text-sm font-bold text-white shadow-md focus:outline-none cursor-pointer"
           >
             <ShoppingBag className="h-4.5 w-4.5" />
-            Sử dụng ngay (Đến Cửa hàng)
+            {coupon?.ownerId ? 'Sử dụng ngay (Đến Cửa hàng áp dụng)' : 'Sử dụng ngay (Khám phá Sản phẩm)'}
           </button>
         </div>
       </div>

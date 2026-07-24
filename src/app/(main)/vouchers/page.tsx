@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getActiveCoupons } from '@/lib/api/coupons.service'
-import { Ticket, Loader2, AlertCircle, Eye, Search, SlidersHorizontal, X } from 'lucide-react'
+import { Ticket, Loader2, AlertCircle, Eye, Search, SlidersHorizontal, X, Store } from 'lucide-react'
 import Link from 'next/link'
 
 export default function VouchersListPage() {
@@ -93,7 +93,7 @@ export default function VouchersListPage() {
             Kho Voucher Khuyến Mãi
           </h1>
           <p className="text-xs text-stone-500 mt-2 font-medium">
-            Khám phá các ưu đãi đặc biệt từ các chủ cửa hàng (Owner) của CupShop. Chọn mã giảm giá phù hợp để áp dụng cho đơn hàng của bạn.
+            Khám phá các ưu đãi đặc biệt từ các chủ cửa hàng (Owner) của Gia Dụng 24h. Chọn mã giảm giá phù hợp để áp dụng cho đơn hàng của bạn.
           </p>
         </div>
 
@@ -267,6 +267,12 @@ export default function VouchersListPage() {
                       {coupon.maxDiscount && (
                         <p className="text-xs text-stone-500 font-semibold">
                           Giảm tối đa: <span className="font-bold text-stone-800">{formatPrice(coupon.maxDiscount)}</span>
+                        </p>
+                      )}
+                      {coupon.ownerId && typeof coupon.ownerId === 'object' && (coupon.ownerId.storeName || coupon.ownerId.fullName) && (
+                        <p className="text-[11px] text-amber-800 font-bold flex items-center gap-1 pt-0.5">
+                          <Store className="h-3 w-3 shrink-0" />
+                          <span>Shop: {coupon.ownerId.storeName || coupon.ownerId.fullName}</span>
                         </p>
                       )}
                     </div>
