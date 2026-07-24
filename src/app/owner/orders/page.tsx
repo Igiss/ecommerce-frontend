@@ -345,11 +345,21 @@ export default function OwnerOrdersPage() {
                     {getStatusText(selectedOrder.status)}
                   </span>
                   
+                  {selectedOrder.status === 'pending' && (
+                    <button
+                      onClick={() => handleStatusChange(selectedOrder._id || selectedOrder.id, 'processing')}
+                      disabled={statusUpdateLoading}
+                      className="rounded-lg border border-amber-800 bg-amber-800 hover:bg-amber-900 text-white px-3.5 py-1.5 text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                    >
+                      {statusUpdateLoading ? 'Đang xử lý...' : 'Xác nhận & Chuẩn bị hàng'}
+                    </button>
+                  )}
+
                   {selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
                     <button
                       onClick={() => handleStatusChange(selectedOrder._id || selectedOrder.id, 'cancelled')}
                       disabled={statusUpdateLoading}
-                      className="rounded-lg border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 text-xs font-bold transition-colors"
+                      className="rounded-lg border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer"
                     >
                       Hủy đơn hàng
                     </button>
