@@ -152,16 +152,40 @@ export default function ProfileOrdersPage() {
                         {order.totalPrice.toLocaleString('vi-VN')}đ
                       </td>
                       <td className="py-3.5 px-5 text-center">
-                        <button
-                          onClick={() => {
-                            setSelectedOrderId(order._id || order.id)
-                            setIsDetailModalOpen(true)
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 px-2.5 py-1 text-xs font-bold text-stone-700 transition-colors shadow-xs cursor-pointer"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          Chi tiết
-                        </button>
+                        {!order.isPaid && order.paymentMethod !== 'COD' && order.status !== 'cancelled' ? (
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                setSelectedOrderId(order._id || order.id)
+                                setIsDetailModalOpen(true)
+                              }}
+                              className="inline-flex items-center gap-1 rounded-lg bg-amber-800 hover:bg-amber-900 transition-colors text-white px-2.5 py-1 text-xs font-bold shadow-xs cursor-pointer"
+                            >
+                              Thanh toán lại
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedOrderId(order._id || order.id)
+                                setIsDetailModalOpen(true)
+                              }}
+                              className="inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 px-2 py-1 text-xs font-bold text-stone-700 transition-colors shadow-xs cursor-pointer"
+                              title="Xem chi tiết"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setSelectedOrderId(order._id || order.id)
+                              setIsDetailModalOpen(true)
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 px-2.5 py-1 text-xs font-bold text-stone-700 transition-colors shadow-xs cursor-pointer"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Chi tiết
+                          </button>
+                        )}
                       </td>
                     </tr>
                   )

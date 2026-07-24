@@ -40,3 +40,40 @@ export function createVNPayUrl(orderId: string) {
     method: 'POST'
   })
 }
+
+export function createSepayQr(orderId: string) {
+  return apiClient<{
+    orderId: string
+    totalAmount: number
+    paymentCode: string
+    qrUrl: string
+    bankName: string
+    accountNumber: string
+    accountHolder: string
+  }>(`/payments/sepay/${orderId}/qr`, {
+    method: 'POST'
+  })
+}
+
+export function getSepayStatus(orderId: string) {
+  return apiClient<{
+    orderId: string
+    paymentStatus: string
+    orderStatus: string
+    paidAt?: string
+    isPaid: boolean
+  }>(`/payments/sepay/status/${orderId}`, {
+    method: 'GET'
+  })
+}
+
+export function createSepayCheckout(orderId: string) {
+  return apiClient<{
+    orderId: string
+    checkoutURL: string
+    checkoutFormfields: Record<string, any>
+  }>(`/payments/sepay/${orderId}/checkout`, {
+    method: 'POST'
+  })
+}
+

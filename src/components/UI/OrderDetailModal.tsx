@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getOrderById, createVNPayUrl, cancelOrder } from '@/lib/api/orders.service'
-import { AlertCircle, Calendar, MapPin, CreditCard, CreditCard as CardIcon, XCircle, Star, X, Loader2 } from 'lucide-react'
+import { getOrderById, createVNPayUrl, createSepayQr, cancelOrder } from '@/lib/api/orders.service'
+import { AlertCircle, Calendar, MapPin, CreditCard, CreditCard as CardIcon, XCircle, Star, X, Loader2, Clock } from 'lucide-react'
 import { ReviewModal } from '@/components/UI/ReviewModal'
 import { ReturnModal } from '@/components/UI/ReturnModal'
+import { SepayModal } from '@/components/checkout/SepayModal'
 
 interface OrderDetailModalProps {
   orderId: string
@@ -19,6 +20,62 @@ export function OrderDetailModal({ orderId, isOpen, onClose, onOrderUpdated }: O
   const [error, setError] = useState('')
   const [payLoading, setPayLoading] = useState(false)
   const [cancelLoading, setCancelLoading] = useState(false)
+  const [sepayQrData, setSepayQrData] = useState<any>(null)
+  const [showSepayModal, setShowSepayModal] = useState(false)
+  const [timeLeftStr, setTimeLeftStr] = useState('')
+
+  useEffect(() => {
+    if (!order || order.isPaid || order.status === 'cancelled' || order.paymentMethod === 'COD') {
+      setTimeLeftStr('')
+      return
+    }
+
+    const updateTimer = () => {
+      const createdAtMs = new Date(order.createdAt).getTime()
+      const expiresAtMs = createdAtMs + 30 * 60 * 1000
+      const diffMs = expiresAtMs - Date.now()
+
+      if (diffMs <= 0) {
+        setTimeLeftStr('Đã hết hạn (30 phút)')
+      } else {
+        const mins = Math.floor(diffMs / 60000)
+        const secs = Math.floor((diffMs % 60000) / 1000)
+        setTimeLeftStr(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`)
+      }
+    }
+
+    updateTimer()
+    const timerId = setInterval(updateTimer, 1000)
+    return () => clearInterval(timerId)
+  }, [order])
+
+  const handleOnlineRepay = async () => {
+    if (!order) return
+    setPayLoading(true)
+    setError('')
+    try {
+      if (order.paymentMethod === 'SEPAY' || order.paymentMethod === 'SePay') {
+        const res = await createSepayQr(order.id)
+        if (res && res.qrUrl) {
+          setSepayQrData(res)
+          setShowSepayModal(true)
+        } else {
+          setError('Không thể tạo mã VietQR SePay.')
+        }
+      } else {
+        const vnpayRes = await createVNPayUrl(order.id)
+        if (vnpayRes && vnpayRes.paymentUrl) {
+          window.location.href = vnpayRes.paymentUrl
+        } else {
+          setError('Không thể tạo liên kết thanh toán VNPay.')
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Lỗi thanh toán.')
+    } finally {
+      setPayLoading(false)
+    }
+  }
 
   const [reviewProduct, setReviewProduct] = useState<any>(null)
   const [returnProduct, setReturnProduct] = useState<any>(null)
@@ -221,12 +278,16 @@ export function OrderDetailModal({ orderId, isOpen, onClose, onOrderUpdated }: O
                     <div>
                       <span className="text-[10px] text-stone-400 font-semibold uppercase">Hình thức</span>
                       <p className="font-bold text-stone-900 mt-0.5">
-                        {order.paymentMethod === 'VNPAY' ? 'Thanh toán trực tuyến VNPay' : 'Thanh toán khi nhận hàng (COD)'}
+                        {order.paymentMethod === 'VNPAY'
+                          ? 'Thanh toán trực tuyến VNPay'
+                          : order.paymentMethod === 'SEPAY' || order.paymentMethod === 'SePay'
+                          ? 'Thanh toán tự động VietQR (SePay)'
+                          : 'Thanh toán khi nhận hàng (COD)'}
                       </p>
                     </div>
                     <div>
                       <span className="text-[10px] text-stone-400 font-semibold uppercase">Trạng thái</span>
-                      <p className="mt-0.5 flex items-center gap-1.5">
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
                         {order.isPaid ? (
                           <span className="inline-flex rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-700 border border-green-150">
                             Đã thanh toán
@@ -239,19 +300,27 @@ export function OrderDetailModal({ orderId, isOpen, onClose, onOrderUpdated }: O
                             <span className="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700 border border-red-150">
                               Chưa thanh toán
                             </span>
-                            {order.paymentMethod === 'VNPAY' && order.status !== 'cancelled' && (
+                            {order.paymentMethod !== 'COD' && order.status !== 'cancelled' && (
                               <button
-                                onClick={handleVNPayRepay}
+                                onClick={handleOnlineRepay}
                                 disabled={payLoading}
-                                className="ml-1.5 inline-flex items-center gap-1 rounded-lg bg-amber-800 hover:bg-amber-900 transition-colors text-white px-2.5 py-0.5 text-[10px] font-bold shadow-sm disabled:bg-stone-450 cursor-pointer"
+                                className="inline-flex items-center gap-1 rounded-lg bg-amber-800 hover:bg-amber-900 transition-colors text-white px-2.5 py-1 text-[10px] font-bold shadow-xs disabled:bg-stone-400 cursor-pointer"
                               >
-                                <CardIcon className="h-3 w-3" />
+                                {payLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CardIcon className="h-3 w-3" />}
                                 Thanh toán lại
                               </button>
                             )}
                           </>
                         )}
-                      </p>
+                      </div>
+
+                      {/* 30-min countdown timer for unpaid online orders */}
+                      {!order.isPaid && order.paymentMethod !== 'COD' && order.status !== 'cancelled' && timeLeftStr && (
+                        <div className="mt-2 text-[11px] font-bold text-amber-800 flex items-center gap-1 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-150">
+                          <Clock className="h-3.5 w-3.5 animate-pulse text-amber-700" />
+                          <span>Hạn thanh toán: {timeLeftStr}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -366,6 +435,17 @@ export function OrderDetailModal({ orderId, isOpen, onClose, onOrderUpdated }: O
               void loadOrder()
             }}
           />
+
+          {showSepayModal && sepayQrData && (
+            <SepayModal
+              orderId={sepayQrData.orderId}
+              qrData={sepayQrData}
+              onClose={() => {
+                setShowSepayModal(false)
+                void loadOrder()
+              }}
+            />
+          )}
         </>
       )}
     </div>
