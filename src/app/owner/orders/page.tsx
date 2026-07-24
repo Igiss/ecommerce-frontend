@@ -366,7 +366,7 @@ export default function OwnerOrdersPage() {
                   )}
                 </div>
                 {/* Handover Button */}
-                {(selectedOrder.status === 'processing' || selectedOrder.status === 'shipped') && (
+                {(selectedOrder.status === 'processing' || selectedOrder.status === 'confirmed' || selectedOrder.status === 'shipped') && (
                   <div className="mt-4 pt-4 border-t border-amber-200/50">
                     <button
                       onClick={() => handleHandover(selectedOrder._id || selectedOrder.id)}
