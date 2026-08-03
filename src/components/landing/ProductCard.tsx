@@ -3,9 +3,7 @@ import { useCartStore } from '@/store/cart.store'
 import { useWishlistStore } from '@/store/wishlist.store'
 import { useAuthStore } from '@/store/auth.store'
 import { ShoppingCart, Sparkles, Heart } from 'lucide-react'
-import Image from 'next/image'
 import { getActivePrice } from '@/utils/price'
-
 import { trackProductView } from '@/lib/utils/user-history'
 import Link from 'next/link'
 
@@ -20,7 +18,7 @@ export function ProductCard({ product }: ProductCardProps) {
   
   const isLiked = hasItem(String(product.id))
 
-  const images = (product as any).images || []
+  const images = product.images || []
   const imageUrl = images[0] || 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=60'
   const secondImageUrl = images.length > 1 ? images[1] : null
 
@@ -40,17 +38,26 @@ export function ProductCard({ product }: ProductCardProps) {
     toggleFavorite(product, isAuthenticated)
   }
 
-  const activePrice = getActivePrice(product);
-  const isSale = activePrice < product.price;
+  const activePrice = getActivePrice(product)
+  const isSale = activePrice < product.price
+
+  const categoryName = typeof product.category === 'object' && product.category !== null
+    ? product.category.name
+    : (typeof product.category === 'string' ? product.category : 'Gia Dụng')
 
   return (
     <Link
-      href={`/products/${product.slug || product.id}`}
+      href={`/products/${product.slug || product.id || product._id || product.productId}`}
       onClick={handleCardClick}
       className="group relative flex flex-col h-full overflow-hidden rounded-2xl border border-stone-200/60 bg-white/60 p-3 shadow-md backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-amber-600/30 hover:shadow-xl cursor-pointer"
     >
       {/* Product Image Container */}
       <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-stone-100 shrink-0">
+        {isSale && (
+          <span className="absolute top-2.5 left-2.5 z-10 flex items-center gap-0.5 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white shadow-md">
+            -{Math.round(((product.price - activePrice) / product.price) * 100)}%
+          </span>
+        )}
         <img
           src={imageUrl}
           alt={product.name}
@@ -79,7 +86,7 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="flex flex-1 flex-col pt-3 pb-1 justify-between">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700/80">
-            {(product as any).category || 'Gia Dụng'}
+            {categoryName || 'Gia Dụng'}
           </span>
           <h3 className="mt-1 text-sm font-bold text-stone-900 line-clamp-1" title={product.name}>
             {product.name}
@@ -103,7 +110,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* Wishlist Button (Bên trái nút Giỏ hàng) */}
+            {/* Wishlist Button */}
             <button
               onClick={handleToggleFavorite}
               className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all hover:scale-105 focus:outline-none cursor-pointer ${

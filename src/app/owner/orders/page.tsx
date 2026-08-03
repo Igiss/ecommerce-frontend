@@ -223,8 +223,13 @@ export default function OwnerOrdersPage() {
 
       {/* Table */}
       {loading ? (
-        <div className="flex py-12 justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-800 border-t-transparent"></div>
+        <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white p-4 shadow-xs">
+          <div className="animate-pulse space-y-3">
+            <div className="h-10 bg-stone-200 rounded-lg w-full"></div>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-12 bg-stone-100 rounded-xl w-full"></div>
+            ))}
+          </div>
         </div>
       ) : orders.length === 0 ? (
         <div className="text-center py-16 border border-stone-200 border-dashed rounded-2xl bg-white">

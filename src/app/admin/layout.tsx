@@ -56,6 +56,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const sidebarLinks = [
     { href: '/admin/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+    { href: '/admin/shops-analytics', label: 'So sánh & Thống kê Shop', icon: Building2 },
     { href: '/admin/coupons', label: 'Mã giảm giá (Vouchers)', icon: Ticket },
     { href: '/admin/banners', label: 'Quản lý Banners', icon: ImageIcon },
     { href: '/admin/shipping-units', label: 'Đơn vị vận chuyển', icon: Truck },

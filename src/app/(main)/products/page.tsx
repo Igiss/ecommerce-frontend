@@ -550,8 +550,18 @@ function ProductsCatalogContent() {
 
           {/* PRODUCTS GRID */}
           {loading ? (
-            <div className="flex py-20 justify-center">
-              <RefreshCw className="h-8 w-8 animate-spin text-amber-800" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="flex flex-col h-[340px] rounded-2xl border border-stone-200/60 bg-white p-3 shadow-sm animate-pulse">
+                  <div className="aspect-square w-full rounded-xl bg-stone-200"></div>
+                  <div className="mt-3 h-4 bg-stone-200 rounded w-3/4"></div>
+                  <div className="mt-2 h-3 bg-stone-150 rounded w-1/2"></div>
+                  <div className="mt-auto pt-3 border-t border-stone-100 flex justify-between items-center">
+                    <div className="h-5 bg-stone-200 rounded w-1/3"></div>
+                    <div className="h-8 w-8 bg-stone-200 rounded-lg"></div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : error ? (
             <div className="text-center py-16 rounded-2xl bg-red-50 text-red-700 border border-red-150">

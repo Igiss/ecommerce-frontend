@@ -171,9 +171,11 @@ export function ProductDetails({ product, onBack, onCustomize }: ProductDetailsP
   const isLowStock = stockQty > 0 && stockQty < 5
 
   const activePrice = getActivePrice(product)
-  const origPrice = product.originalPrice && product.originalPrice > activePrice ? product.originalPrice : Math.round(activePrice * 1.22)
-  const isSale = origPrice > activePrice
-  const discountPercent = Math.round(((origPrice - activePrice) / origPrice) * 100)
+  const basePrice = product.price || activePrice
+  const isSale = activePrice < basePrice
+  const origPrice = basePrice
+  const discountPercent = isSale ? Math.round(((basePrice - activePrice) / basePrice) * 100) : 0
+
 
   const catName = typeof product.category === 'object' && product.category !== null
     ? (product.category as any).name

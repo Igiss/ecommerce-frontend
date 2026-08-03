@@ -444,8 +444,18 @@ export function Home(props: HomeProps) {
         </div>
 
         {loading ? (
-          <div className="flex min-h-[200px] items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-800 border-t-transparent" />
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="flex flex-col h-[340px] rounded-2xl border border-stone-200/60 bg-white p-3 shadow-sm animate-pulse">
+                <div className="aspect-square w-full rounded-xl bg-stone-200"></div>
+                <div className="mt-3 h-4 bg-stone-200 rounded w-3/4"></div>
+                <div className="mt-2 h-3 bg-stone-150 rounded w-1/2"></div>
+                <div className="mt-auto pt-3 border-t border-stone-100 flex justify-between items-center">
+                  <div className="h-5 bg-stone-200 rounded w-1/3"></div>
+                  <div className="h-8 w-8 bg-stone-200 rounded-lg"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-stone-200 bg-stone-50 py-16 text-center">

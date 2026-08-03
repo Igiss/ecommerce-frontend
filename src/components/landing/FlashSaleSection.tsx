@@ -38,12 +38,11 @@ export function FlashSaleSection({ products }: FlashSaleSectionProps) {
   const discountedProducts = (products || [])
     .map((p) => {
       const activePrice = getActivePrice(p)
-      const rawOrig = (p as any).originalPrice
-      const orig = rawOrig && rawOrig > activePrice ? rawOrig : Math.round(activePrice * 1.28)
-      const discountPercent = Math.round(((orig - activePrice) / orig) * 100)
-      return { product: { ...p, price: activePrice, originalPrice: orig }, discountPercent }
+      const basePrice = p.price || activePrice
+      const discountPercent = basePrice > activePrice ? Math.round(((basePrice - activePrice) / basePrice) * 100) : 0
+      return { product: { ...p, price: activePrice, originalPrice: basePrice }, discountPercent }
     })
-    .filter((item) => item.discountPercent >= 10)
+    .filter((item) => item.discountPercent > 0)
     .sort((a, b) => b.discountPercent - a.discountPercent)
     .slice(0, 4)
 
@@ -144,7 +143,7 @@ export function FlashSaleSection({ products }: FlashSaleSectionProps) {
                 </div>
 
                 <Link
-                  href={`/products/${product.slug || product.id}`}
+                  href={`/products/${product.slug || product.id || (product as any)._id || (product as any).productId}`}
                   onClick={handleCardClick}
                   className="flex flex-col h-full justify-between"
                 >

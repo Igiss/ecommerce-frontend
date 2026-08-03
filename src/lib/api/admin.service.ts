@@ -53,6 +53,59 @@ export interface AdminAnalytics {
   }
 }
 
+export interface AdminShopComparisonItem {
+  ownerId: string
+  storeName: string
+  fullName?: string
+  email?: string
+  phone?: string
+  avatar?: string
+  totalProducts: number
+  totalOrders: number
+  completedOrders: number
+  totalItemsSold: number
+  totalRevenue: number
+  completionRate: number
+}
+
+export interface AdminShopComparisonMeta {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
+export interface AdminShopComparisonResponse {
+  data: AdminShopComparisonItem[]
+  meta: AdminShopComparisonMeta
+}
+
+export interface AdminShopTrendChartResponse {
+  period: string
+  shops: Array<{ ownerId: string; storeName: string }>
+  chartData: Array<{
+    date: { year: number; month: number; day?: number }
+    ownerId: string
+    totalItemsSold: number
+    totalRevenue: number
+  }>
+}
+
+export interface AdminShopCategoryBreakdownItem {
+  _id: {
+    categoryId: string
+    categoryName: string
+  }
+  categoryTotalItemsSold: number
+  categoryTotalRevenue: number
+  shops: Array<{
+    ownerId: string
+    storeName: string
+    totalItemsSold: number
+    totalRevenue: number
+  }>
+}
+
 function getOrderStatus(order: any) {
   return (order?.orderStatus || order?.status || 'pending').toString().toLowerCase()
 }
@@ -303,5 +356,42 @@ export function broadcastNotification(body: { title: string; message: string; ty
   return apiClient<any>('/notifications/broadcast', {
     method: 'POST',
     body: JSON.stringify(body)
+  })
+}
+
+// Admin Shop Comparison & Analytics
+export function getAdminShopsComparison(params: {
+  period?: string
+  from?: string
+  to?: string
+  sortBy?: string
+  order?: string
+  page?: number
+  limit?: number
+  search?: string
+} = {}) {
+  const query = toQueryString(params)
+  return apiClient<AdminShopComparisonResponse>(`/reports/admin/shops-comparison${query ? `?${query}` : ''}`, {
+    method: 'GET',
+  })
+}
+
+export function getAdminShopsTrendChart(params: {
+  period?: string
+  sortBy?: string
+} = {}) {
+  const query = toQueryString(params)
+  return apiClient<AdminShopTrendChartResponse>(`/reports/admin/shops-trend-chart${query ? `?${query}` : ''}`, {
+    method: 'GET',
+  })
+}
+
+export function getAdminShopsCategoryBreakdown(params: {
+  from?: string
+  to?: string
+} = {}) {
+  const query = toQueryString(params)
+  return apiClient<AdminShopCategoryBreakdownItem[]>(`/reports/admin/shops-category-breakdown${query ? `?${query}` : ''}`, {
+    method: 'GET',
   })
 }

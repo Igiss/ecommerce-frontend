@@ -10,8 +10,10 @@ import {
 import { uploadProductImages } from '@/lib/api/upload.service'
 import { useAuthStore } from '@/store/auth.store'
 import type { Product } from '@/types/product'
-import { Plus, Edit2, Trash2, X, Upload, AlertCircle, Sparkles, Search } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Upload, AlertCircle, Sparkles, Search, Tag } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
+import { PriceScheduleModal } from '@/components/owner/PriceScheduleModal'
+
 
 export default function OwnerProductsPage() {
   const { user } = useAuthStore()
@@ -22,6 +24,16 @@ export default function OwnerProductsPage() {
   // Modal State
   const [isOpen, setIsOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any | null>(null)
+
+  // Price Schedule Modal State
+  const [priceScheduleProduct, setPriceScheduleProduct] = useState<Product | null>(null)
+  const [isPriceScheduleOpen, setIsPriceScheduleOpen] = useState(false)
+
+  const handleOpenPriceScheduleModal = (product: Product) => {
+    setPriceScheduleProduct(product)
+    setIsPriceScheduleOpen(true)
+  }
+
 
   // Search, filter & pagination state
   const [searchQuery, setSearchQuery] = useState('')
@@ -44,11 +56,9 @@ export default function OwnerProductsPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState<number | string>('')
-  const [salePrice, setSalePrice] = useState<number | string>('')
-  const [saleStartDate, setSaleStartDate] = useState('')
-  const [saleEndDate, setSaleEndDate] = useState('')
   const [category, setCategory] = useState('')
   const [countInStock, setCountInStock] = useState<number | string>('')
+
   const [modelUrl, setModelUrl] = useState('')
   const [imageFiles, setImageFiles] = useState<FileList | null>(null)
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
@@ -82,7 +92,8 @@ export default function OwnerProductsPage() {
   }
 
   // Filter products by search query and category
-  const filteredProducts = products.filter((p) => {
+  const productsList = Array.isArray(products) ? products : []
+  const filteredProducts = productsList.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.description.toLowerCase().includes(searchQuery.toLowerCase())
@@ -156,9 +167,6 @@ export default function OwnerProductsPage() {
     setName('')
     setDescription('')
     setPrice('')
-    setSalePrice('')
-    setSaleStartDate('')
-    setSaleEndDate('')
     setCategory(categoriesList[0]?.id || categoriesList[0]?._id || '')
     setCountInStock('')
     setModelUrl('')
@@ -173,9 +181,6 @@ export default function OwnerProductsPage() {
     setName(product.name)
     setDescription(product.description)
     setPrice(product.price)
-    setSalePrice(product.salePrice || '')
-    setSaleStartDate(product.saleStartDate ? new Date(product.saleStartDate).toISOString().slice(0, 16) : '')
-    setSaleEndDate(product.saleEndDate ? new Date(product.saleEndDate).toISOString().slice(0, 16) : '')
     const catId = product.categoryId?.id || product.categoryId?._id || product.categoryId || ''
     setCategory(catId)
     setCountInStock(product.stock ?? product.countInStock ?? 0)
@@ -184,6 +189,7 @@ export default function OwnerProductsPage() {
     setFormError('')
     setIsOpen(true)
   }
+
 
   // Handle delete
   const handleDeleteClick = async (id: string) => {
@@ -232,9 +238,6 @@ export default function OwnerProductsPage() {
         name,
         description,
         price: parsedPrice,
-        salePrice: salePrice ? Number(salePrice) : undefined,
-        saleStartDate: saleStartDate ? new Date(saleStartDate).toISOString() : undefined,
-        saleEndDate: saleEndDate ? new Date(saleEndDate).toISOString() : undefined,
         stock: parsedStock,
         categoryId: category,
         modelUrl: modelUrl || undefined,
@@ -334,8 +337,13 @@ export default function OwnerProductsPage() {
 
       {/* Product List Table */}
       {loading ? (
-        <div className="flex py-12 justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-800 border-t-transparent"></div>
+        <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white p-4 shadow-xs">
+          <div className="animate-pulse space-y-3">
+            <div className="h-10 bg-stone-200 rounded-lg w-full"></div>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-12 bg-stone-100 rounded-xl w-full"></div>
+            ))}
+          </div>
         </div>
       ) : products.length === 0 ? (
         <div className="text-center py-16 border border-stone-200 border-dashed rounded-2xl bg-white">
@@ -403,6 +411,13 @@ export default function OwnerProductsPage() {
                     </td>
                     <td className="py-3 px-6 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleOpenPriceScheduleModal(product)}
+                          className="p-2 text-stone-400 hover:text-amber-600 transition-colors"
+                          title="Lịch trình giá & Sale"
+                        >
+                          <Tag className="h-4 w-4" />
+                        </button>
                         <button
                           onClick={() => handleEditClick(product)}
                           className="p-2 text-stone-400 hover:text-amber-800 transition-colors"
@@ -555,7 +570,7 @@ export default function OwnerProductsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-555 uppercase">Đơn giá (VND)</label>
+                  <label className="block text-xs font-semibold text-stone-555 uppercase">Đơn giá gốc (VND)</label>
                   <input
                     type="text"
                     required
@@ -564,47 +579,10 @@ export default function OwnerProductsPage() {
                       const raw = e.target.value.replace(/\D/g, '')
                       setPrice(raw)
                     }}
-                    placeholder="Nhập đơn giá..."
+                    placeholder="Nhập đơn giá gốc..."
                     className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-stone-555 uppercase">Giá Sale (VND)</label>
-                  <input
-                    type="text"
-                    value={formatPriceString(salePrice)}
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/\D/g, '')
-                      setSalePrice(raw)
-                    }}
-                    placeholder="Nhập giá sale..."
-                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-stone-555 uppercase">Ngày bắt đầu sale</label>
-                  <input
-                    type="datetime-local"
-                    value={saleStartDate}
-                    onChange={(e) => setSaleStartDate(e.target.value)}
-                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-stone-555 uppercase">Ngày kết thúc sale</label>
-                  <input
-                    type="datetime-local"
-                    value={saleEndDate}
-                    onChange={(e) => setSaleEndDate(e.target.value)}
-                    className="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-stone-555 uppercase">Số lượng trong kho</label>
                   <input
@@ -715,6 +693,18 @@ export default function OwnerProductsPage() {
           </div>
         </div>
       )}
+
+      {/* Price Schedule Modal */}
+      <PriceScheduleModal
+        product={priceScheduleProduct}
+        isOpen={isPriceScheduleOpen}
+        onClose={() => setIsPriceScheduleOpen(false)}
+        onSuccess={() => {
+          fetchProductsList()
+        }}
+      />
     </div>
   )
 }
+
+

@@ -17,8 +17,12 @@ export default function WishlistPage() {
 
   if (!mounted) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-amber-800" />
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-72 bg-stone-100 rounded-2xl border border-stone-200"></div>
+          ))}
+        </div>
       </div>
     )
   }

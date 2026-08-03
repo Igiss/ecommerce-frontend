@@ -17,8 +17,12 @@ export default function CartPage() {
 
   if (!mounted) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-800 border-t-transparent"></div>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-stone-200 rounded-lg w-1/4 mb-6"></div>
+          <div className="h-24 bg-stone-100 rounded-2xl w-full"></div>
+          <div className="h-24 bg-stone-100 rounded-2xl w-full"></div>
+        </div>
       </div>
     )
   }
