@@ -54,13 +54,21 @@ export default function StoreProfilePage() {
     setPageInput(String(currentPage))
   }, [currentPage])
 
+  // Helper to safely extract category name
+  const getProdCatName = (p: Product): string => {
+    const cat = p.categoryId || p.category
+    if (typeof cat === 'object' && cat !== null) return cat.name || ''
+    if (typeof cat === 'string') return cat
+    return ''
+  }
+
   // Extract categories dynamically from store products
   const storeCategories = [
     'Tất cả',
     ...Array.from(
       new Set(
         products
-          .map((p) => p.categoryId?.name)
+          .map(getProdCatName)
           .filter(Boolean)
       )
     )
@@ -69,7 +77,7 @@ export default function StoreProfilePage() {
   // Get total count per category
   const getCategoryProductCount = (catName: string) => {
     if (catName === 'Tất cả') return products.length
-    return products.filter((p) => p.categoryId?.name === catName).length
+    return products.filter((p) => getProdCatName(p) === catName).length
   }
 
   // Filter products by search and category
@@ -80,7 +88,7 @@ export default function StoreProfilePage() {
 
     const matchesCategory =
       selectedCategory === 'Tất cả' ||
-      p.categoryId?.name === selectedCategory
+      getProdCatName(p) === selectedCategory
 
     return matchesSearch && matchesCategory
   })

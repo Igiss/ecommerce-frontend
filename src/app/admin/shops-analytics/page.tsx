@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react"
 import {
-  ArrowDownAmount,
-  ArrowUpAmount,
   Award,
   BarChart3,
   Building2,

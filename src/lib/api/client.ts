@@ -43,7 +43,7 @@ export async function apiClient<T>(
     }
     
     if (typeof window === 'undefined') {
-      require('fs').appendFileSync('debug-api.log', `Error fetching ${finalUrl}: ${errMsg}\n`)
+      console.error(`[apiClient Error] ${finalUrl}: ${errMsg}`)
     }
     throw new ApiError(errMsg, response.status)
   }
